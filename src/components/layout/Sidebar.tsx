@@ -24,7 +24,7 @@ const navItems: NavGroup[] = [
     group: "Menu Utama",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "space_dashboard", roles: ["owner", "admin", "viewer"] },
-      { href: "/transaksi/penjualan/baru", label: "Kasir POS", icon: "point_of_sale", roles: ["owner", "admin", "cashier"] },
+      { href: "/kasir", label: "Kasir POS", icon: "point_of_sale", roles: ["owner", "admin", "cashier"] },
       { href: "/transaksi/penjualan", label: "Transaksi Penjualan", icon: "receipt_long", roles: ["owner", "admin", "cashier"] },
       { href: "/transaksi/pembelian", label: "Pembelian Stok", icon: "local_mall", roles: ["owner", "admin"] },
       { href: "/laporan", label: "Laporan & Buku Kas", icon: "account_balance_wallet", roles: ["owner", "accounting", "viewer"] },
