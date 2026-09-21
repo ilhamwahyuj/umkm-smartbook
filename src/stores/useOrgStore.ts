@@ -40,9 +40,10 @@ export const useOrgStore = create<OrgState>()(
               organization_id: "demo-org",
               user_id: "demo-user",
               role: role,
+              is_active: true,
+              invited_at: new Date().toISOString(),
               joined_at: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+              created_at: new Date().toISOString()
             }
           });
         }

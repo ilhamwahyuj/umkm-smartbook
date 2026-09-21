@@ -60,11 +60,11 @@ export default function SeedPage() {
         unit_id: unitData.id,
         sku: p.sku,
         name: p.name,
-        buy_price: p.price * 0.7, // Asumsi HPP 70%
-        sell_price: p.price,
+        buy_price: p.buy_price, // Asumsi HPP 70%
+        sell_price: p.sell_price,
         stock: p.stock,
         min_stock: p.min_stock,
-        is_active: p.status === "aktif",
+        is_active: p.is_active,
       }));
       
       const { error: prodErr } = await supabase.from("products").insert(productsToInsert);
@@ -89,9 +89,9 @@ export default function SeedPage() {
       const suppliersToInsert = mockSuppliers.map(s => ({
         organization_id: orgId,
         name: s.name,
-        contact_name: s.contact,
+        contact_name: s.contact_name,
         phone: s.phone,
-        is_active: s.status === "aktif",
+        is_active: s.is_active,
       }));
       
       const { error: suppErr } = await supabase.from("suppliers").insert(suppliersToInsert);

@@ -108,7 +108,7 @@ export default function PenggunaPage() {
                       </div>
                     </td>
                     <td className="text-sm text-slate-600">
-                      {formatDate(member.joined_at)}
+                      {formatDate(member.joined_at || member.created_at)}
                     </td>
                     <td>
                       <span className="badge badge-success text-[11px] px-2 py-0.5">Aktif</span>

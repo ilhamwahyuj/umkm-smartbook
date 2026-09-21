@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Building2, Save, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useGetOrganization, useUpdateOrganization } from "@/hooks/api/useOrganization";
+import type { BusinessType } from "@/types/database";
 
 export default function ProfilUsahaPage() {
   const { data: organization, isLoading } = useGetOrganization();
@@ -10,7 +11,7 @@ export default function ProfilUsahaPage() {
   
   const [formData, setFormData] = useState({
     name: "",
-    type: "",
+    type: "general" as BusinessType,
     email: "",
     phone: "",
     address: "",

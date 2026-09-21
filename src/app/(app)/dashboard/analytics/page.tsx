@@ -138,7 +138,7 @@ export default function AnalyticsPage() {
                 <Tooltip
                   cursor={{ fill: '#f8fafc' }}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(val: number) => formatRupiah(val)}
+                  formatter={(val: any) => formatRupiah(val)}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
                 <Bar dataKey="income" name="Pendapatan" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -169,7 +169,7 @@ export default function AnalyticsPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(val: number) => `${val}%`}
+                  formatter={(val: any) => `${val}%`}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
               </PieChart>

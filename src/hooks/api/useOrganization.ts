@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useOrgStore } from "@/stores/useOrgStore";
-import type { Database } from "@/types/database";
+import type { Organization } from "@/types/database";
 
-type Organization = Database["public"]["Tables"]["organizations"]["Row"];
-type OrganizationUpdate = Database["public"]["Tables"]["organizations"]["Update"];
+type OrganizationUpdate = Partial<Organization>;
 
 export function useGetOrganization() {
   const currentOrg = useOrgStore((state) => state.currentOrg);

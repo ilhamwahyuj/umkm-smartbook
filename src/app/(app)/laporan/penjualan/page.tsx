@@ -32,10 +32,10 @@ export default function LaporanPenjualanPage() {
       invoice: sale.invoice_number,
       date: formatDate(sale.created_at),
       customer: sale.customer?.name || "Pelanggan Umum",
-      cashier: sale.cashier?.name || "-",
+      cashier: sale.cashier_id || "-",
       total: formatRupiah(sale.total),
       payment: sale.payment_method?.toUpperCase() || "CASH",
-      status: sale.status?.toUpperCase() || "SELESAI"
+      status: sale.payment_status?.toUpperCase() || "PAID"
     }));
     exportToExcel(dataToExport, exportColumns, "Laporan_Penjualan_UMKM");
   };
@@ -45,10 +45,10 @@ export default function LaporanPenjualanPage() {
       invoice: sale.invoice_number,
       date: formatDate(sale.created_at),
       customer: sale.customer?.name || "Umum",
-      cashier: sale.cashier?.name || "-",
+      cashier: sale.cashier_id || "-",
       total: formatRupiah(sale.total),
       payment: sale.payment_method?.toUpperCase() || "CASH",
-      status: sale.status?.toUpperCase() || "SELESAI"
+      status: sale.payment_status?.toUpperCase() || "PAID"
     }));
     exportToPDF(dataToExport, exportColumns, "Laporan_Penjualan_UMKM", "Laporan Penjualan");
   };
@@ -125,7 +125,7 @@ export default function LaporanPenjualanPage() {
                   <td className="font-medium text-slate-800">{sale.invoice_number}</td>
                   <td className="text-sm text-slate-600">{formatDate(sale.created_at)}</td>
                   <td>{sale.customer?.name || "Pelanggan Umum"}</td>
-                  <td>{sale.cashier?.name || "-"}</td>
+                  <td>{sale.cashier_id || "-"}</td>
                   <td className="text-right font-bold text-slate-900">{formatRupiah(sale.total)}</td>
                   <td>
                     <span className="badge text-[10px] uppercase bg-slate-100 text-slate-600">
@@ -134,10 +134,10 @@ export default function LaporanPenjualanPage() {
                   </td>
                   <td>
                     <span className={`badge text-[10px] uppercase ${
-                      sale.status === 'completed' || !sale.status ? 'badge-success' : 
-                      sale.status === 'pending' ? 'badge-warning' : 'badge-danger'
+                      sale.payment_status === 'paid' || !sale.payment_status ? 'badge-success' : 
+                      sale.payment_status === 'partial' ? 'badge-warning' : 'badge-danger'
                     }`}>
-                      {sale.status || 'completed'}
+                      {sale.payment_status || 'paid'}
                     </span>
                   </td>
                 </tr>
