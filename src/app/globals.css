@@ -156,3 +156,33 @@
 @utility text-tabular-numeric {
   font-feature-settings: 'tnum' on, 'zero' on;
 }
+
+@layer components {
+  .input {
+    @apply w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition-all focus:border-emerald-600 focus:outline-none focus:ring-4 focus:ring-emerald-600/10 placeholder:text-slate-400;
+  }
+  .input-label {
+    @apply mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-600/30;
+  }
+  .btn-outline {
+    @apply border-2 border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50;
+  }
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-6 py-3.5 text-base;
+  }
+  .card {
+    @apply rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 p-6;
+  }
+}

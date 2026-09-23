@@ -127,12 +127,12 @@ export default function KeuanganPage() {
 
           {/* Receivables & Payables */}
           <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-slate-100">
-            <Link href="/keuangan/piutang" className="bg-amber-50 rounded-xl p-3 hover:bg-amber-100 transition-colors block border border-amber-100 hover:border-amber-200">
+            <Link href="/keuangan/piutang-dan-hutang" className="bg-amber-50 rounded-xl p-3 hover:bg-amber-100 transition-colors block border border-amber-100 hover:border-amber-200">
               <p className="text-xs text-amber-700 font-medium">Total Piutang</p>
               <p className="text-lg font-bold text-amber-800 mt-0.5">{formatRupiah(summary.receivables)}</p>
               <p className="text-[10px] text-amber-600 mt-1 font-medium">Lihat Detail →</p>
             </Link>
-            <Link href="/keuangan/hutang" className="bg-rose-50 rounded-xl p-3 hover:bg-rose-100 transition-colors block border border-rose-100 hover:border-rose-200">
+            <Link href="/keuangan/piutang-dan-hutang" className="bg-rose-50 rounded-xl p-3 hover:bg-rose-100 transition-colors block border border-rose-100 hover:border-rose-200">
               <p className="text-xs text-rose-700 font-medium">Total Hutang</p>
               <p className="text-lg font-bold text-rose-800 mt-0.5">
                 {formatRupiah(mockPayables.reduce((sum, p) => sum + p.remaining_amount, 0))}

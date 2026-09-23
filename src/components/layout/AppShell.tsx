@@ -18,9 +18,19 @@ export function AppShell({ children }: AppShellProps) {
 
   useEffect(() => {
     async function init() {
+      // For demo mode fallback
+      const { setDemoRole } = useOrgStore.getState();
+      
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      
+      if (!user) {
+        // If not authenticated via Supabase but has demo_mode cookie
+        if (document.cookie.includes("demo_mode=true")) {
+           setDemoRole("owner");
+        }
+        return;
+      }
 
       // Ambil data member dan relasi organisasi
       const { data: members } = await supabase
@@ -30,11 +40,14 @@ export function AppShell({ children }: AppShellProps) {
         .eq("is_active", true);
 
       if (members && members.length > 0) {
-        const validOrgIds = members.map((m: any) => m.organizations.id);
+        const validOrgIds = members.map((m: any) => m.organizations?.id);
         // Jika currentOrg kosong atau tidak valid, set org pertama sebagai default
         if (!currentOrg || !validOrgIds.includes(currentOrg.id)) {
           setCurrentOrg(members[0].organizations, members[0]);
         }
+      } else {
+        // Fallback for demo users that have an account but no organization setup yet
+        setDemoRole("owner");
       }
     }
     init();

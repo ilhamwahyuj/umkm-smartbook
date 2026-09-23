@@ -8,12 +8,12 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import type { UserRole } from "@/types/database";
 
 const roleLabels: Record<UserRole, { label: string; color: string; desc: string }> = {
-  owner: { label: "Owner", color: "bg-emerald-100 text-emerald-700", desc: "Akses penuh" },
-  admin: { label: "Admin", color: "bg-indigo-100 text-indigo-700", desc: "Manajemen operasional" },
-  cashier: { label: "Kasir", color: "bg-blue-100 text-blue-700", desc: "Akses POS & Penjualan" },
-  warehouse: { label: "Gudang", color: "bg-amber-100 text-amber-700", desc: "Manajemen inventaris" },
-  accounting: { label: "Keuangan", color: "bg-rose-100 text-rose-700", desc: "Akses laporan & hutang" },
-  viewer: { label: "Viewer", color: "bg-slate-100 text-slate-700", desc: "Hanya melihat (Read-only)" },
+  owner: { label: "Owner", color: "bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full", desc: "Akses penuh" },
+  admin: { label: "Admin", color: "bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full", desc: "Manajemen operasional" },
+  cashier: { label: "Kasir", color: "bg-blue-50 text-blue-700 border border-blue-200 rounded-full", desc: "Akses POS & Penjualan" },
+  warehouse: { label: "Gudang", color: "bg-amber-50 text-amber-700 border border-amber-200 rounded-full", desc: "Manajemen inventaris" },
+  accounting: { label: "Keuangan", color: "bg-rose-50 text-rose-700 border border-rose-200 rounded-full", desc: "Akses laporan & hutang" },
+  viewer: { label: "Viewer", color: "bg-slate-50 text-slate-700 border border-slate-200 rounded-full", desc: "Hanya melihat (Read-only)" },
 };
 
 export default function PenggunaPage() {
@@ -71,20 +71,20 @@ export default function PenggunaPage() {
         {/* Table */}
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr>
-                  <th>Pengguna</th>
-                  <th>Role & Akses</th>
-                  <th>Bergabung Sejak</th>
-                  <th>Status</th>
-                  <th></th>
+                <tr className="border-b border-slate-200 bg-slate-50/50">
+                  <th className="p-4 font-semibold text-sm text-slate-700">Pengguna</th>
+                  <th className="p-4 font-semibold text-sm text-slate-700">Role & Akses</th>
+                  <th className="p-4 font-semibold text-sm text-slate-700 whitespace-nowrap">Bergabung Sejak</th>
+                  <th className="p-4 font-semibold text-sm text-slate-700">Status</th>
+                  <th className="p-4"></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {filtered.map((member) => (
-                  <tr key={member.id}>
-                    <td>
+                  <tr key={member.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 flex-shrink-0">
                           {member.user.avatar_url ? (
@@ -99,7 +99,7 @@ export default function PenggunaPage() {
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td className="p-4">
                       <div className="flex flex-col items-start">
                         <span className={cn("badge text-[11px] px-2 py-0.5", roleLabels[member.role].color)}>
                           {roleLabels[member.role].label}
@@ -107,13 +107,13 @@ export default function PenggunaPage() {
                         <span className="text-[10px] text-slate-400 mt-1">{roleLabels[member.role].desc}</span>
                       </div>
                     </td>
-                    <td className="text-sm text-slate-600">
+                    <td className="p-4 text-sm text-slate-600 whitespace-nowrap">
                       {formatDate(member.joined_at || member.created_at)}
                     </td>
-                    <td>
-                      <span className="badge badge-success text-[11px] px-2 py-0.5">Aktif</span>
+                    <td className="p-4">
+                      <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] px-2 py-0.5">Aktif</span>
                     </td>
-                    <td>
+                    <td className="p-4">
                       <button className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400">
                         <MoreVertical className="w-4 h-4" />
                       </button>

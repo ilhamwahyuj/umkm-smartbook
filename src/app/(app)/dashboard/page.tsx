@@ -2,6 +2,7 @@
 // src/app/(app)/dashboard/page.tsx
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Package,
   AlertTriangle,
@@ -52,8 +53,10 @@ const paymentMethodColor: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [dateFilter, setDateFilter] = useState<DateFilter>("bulan-ini");
   const [isMounted, setIsMounted] = useState(false);
+  const [autoUpdate, setAutoUpdate] = useState(true);
   
   const { data: realSummary, isLoading: summaryLoading } = useDashboardSummary(dateFilter);
 
@@ -81,11 +84,11 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500 font-medium mt-0.5">Ringkasan performa penjualan, kas, dan operasional tokomu hari ini</p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
-          <button className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-2xl border border-slate-200/90 shadow-sm transition-all" type="button">
+          <button onClick={() => router.push('/pengaturan/profil-usaha')} className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-2xl border border-slate-200/90 shadow-sm transition-all" type="button">
             <span className="material-symbols-outlined text-teal-700 text-sm">storefront</span>
             <span>Outlet Utama - Toko Berkah Sentosa</span>
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0F766E] hover:bg-[#0D9488] text-white font-bold text-xs rounded-2xl shadow-sm shadow-teal-700/20 active:scale-95 transition-all" type="button">
+          <button onClick={() => router.push('/kasir')} className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0F766E] hover:bg-[#0D9488] text-white font-bold text-xs rounded-2xl shadow-sm shadow-teal-700/20 active:scale-95 transition-all" type="button">
             <span className="material-symbols-outlined text-base">add</span>
             <span>+ Transaksi Baru / Kasir</span>
           </button>
@@ -95,10 +98,10 @@ export default function DashboardPage() {
       {/* TOP 4 STAT CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Pendapatan */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+        <div onClick={() => router.push('/laporan')} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Total Pendapatan</span>
-            <div className="w-8 h-8 rounded-xl bg-[#CCFBF1] text-[#0F766E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#CCFBF1] text-[#0F766E] flex items-center justify-center group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined text-[18px]">payments</span>
             </div>
           </div>
@@ -111,10 +114,10 @@ export default function DashboardPage() {
           </div>
         </div>
         {/* Card 2: Total Pengeluaran */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+        <div onClick={() => router.push('/keuangan/operasional')} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Total Pengeluaran</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined text-[18px]">shopping_cart_checkout</span>
             </div>
           </div>
@@ -127,10 +130,10 @@ export default function DashboardPage() {
           </div>
         </div>
         {/* Card 3: Laba Bersih */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+        <div onClick={() => router.push('/laporan')} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Laba Bersih</span>
-            <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined text-[18px]">query_stats</span>
             </div>
           </div>
@@ -143,10 +146,10 @@ export default function DashboardPage() {
           </div>
         </div>
         {/* Card 4: Total Transaksi */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+        <div onClick={() => router.push('/transaksi/penjualan')} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Total Transaksi</span>
-            <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined text-[18px]">shopping_bag</span>
             </div>
           </div>
@@ -169,9 +172,9 @@ export default function DashboardPage() {
               <h2 className="text-base font-bold text-slate-900">Tren Penjualan &amp; Pesanan Harian</h2>
               <p className="text-xs text-slate-400 mt-0.5">Pantau volume transaksi per hari</p>
             </div>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 transition-colors" type="button">
-              <span className="material-symbols-outlined text-[15px] text-teal-600">autorenew</span>
-              <span>Auto Update</span>
+            <button onClick={() => setAutoUpdate(!autoUpdate)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors", autoUpdate ? "bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-700" : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700")} type="button">
+              <span className={cn("material-symbols-outlined text-[15px]", autoUpdate ? "text-teal-600 animate-spin" : "text-slate-400")} style={autoUpdate ? { animationDuration: '3s' } : {}}>autorenew</span>
+              <span>{autoUpdate ? 'Auto Update' : 'Update Mati'}</span>
             </button>
           </div>
           
@@ -230,7 +233,7 @@ export default function DashboardPage() {
                 <p className="text-[11px] text-slate-500">Kasir 1, 2, 3 &amp; Barista aktif</p>
               </div>
             </div>
-            <button className="text-slate-300 hover:text-slate-500" type="button">
+            <button onClick={() => router.push('/pengaturan/pengguna')} className="text-slate-300 hover:text-teal-600 transition-colors" type="button" title="Kelola Staf">
               <span className="material-symbols-outlined text-base">more_vert</span>
             </button>
           </div>
@@ -247,7 +250,7 @@ export default function DashboardPage() {
                 <p className="text-[11px] text-slate-500">Tersebar di 6 kategori aktif</p>
               </div>
             </div>
-            <button className="text-slate-300 hover:text-slate-500" type="button">
+            <button onClick={() => router.push('/inventory')} className="text-slate-300 hover:text-teal-600 transition-colors" type="button" title="Lihat Inventori">
               <span className="material-symbols-outlined text-base">more_vert</span>
             </button>
           </div>
@@ -259,7 +262,7 @@ export default function DashboardPage() {
                 <h4 className="text-sm font-bold text-slate-900">Distribusi Metode Bayar</h4>
                 <p className="text-[11px] text-slate-400">Realisasi penerimaan pelanggan</p>
               </div>
-              <button className="text-slate-300 hover:text-slate-500" type="button">
+              <button onClick={() => router.push('/laporan')} className="text-slate-300 hover:text-teal-600 transition-colors" type="button" title="Lihat Laporan Pembayaran">
                 <span className="material-symbols-outlined text-base">more_vert</span>
               </button>
             </div>
@@ -306,53 +309,74 @@ export default function DashboardPage() {
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Kategori &amp; Produk Terlaris</h3>
-              <button className="text-slate-300 hover:text-slate-500" type="button">
-                <span className="material-symbols-outlined text-base">more_vert</span>
-              </button>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Produk Terlaris</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">Paling digemari pelanggan hari ini</p>
+              </div>
+              <span className="material-symbols-outlined text-slate-400">workspace_premium</span>
             </div>
-            <div className="space-y-3.5 mt-1">
-              <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                  <span>Kopi &amp; Minuman</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">68 Pcs</span>
+            
+            <div className="flex flex-col gap-3.5 mt-2">
+              {/* Item 1 */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded-full bg-teal-50 text-teal-700 text-[10px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                    <span className="text-xs font-bold text-slate-800 truncate">Kopi Susu Aren Berkah</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-teal-700 flex-shrink-0">68 cup</span>
                 </div>
-                <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full diagonal-stripes-lime" style={{ width: '82%' }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                  <span>Makanan &amp; Snack</span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">34 Pcs</span>
-                </div>
-                <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full diagonal-stripes-amber" style={{ width: '48%' }}></div>
+                <div className="w-full bg-slate-50 rounded-full h-2 overflow-hidden border border-slate-100">
+                  <div className="h-full rounded-full diagonal-stripes-lime" style={{ width: '100%' }}></div>
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                  <span>Dessert &amp; Pastry</span>
-                  <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold">24 Pcs</span>
+              
+              {/* Item 2 */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                    <span className="text-xs font-bold text-slate-800 truncate">Almond Croissant Toast</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-600 flex-shrink-0">34 pcs</span>
                 </div>
-                <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-50 rounded-full h-2 overflow-hidden border border-slate-100">
+                  <div className="h-full rounded-full diagonal-stripes-amber" style={{ width: '50%' }}></div>
+                </div>
+              </div>
+              
+              {/* Item 3 */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                    <span className="text-xs font-bold text-slate-800 truncate">Matcha Latte Cream</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-600 flex-shrink-0">24 cup</span>
+                </div>
+                <div className="w-full bg-slate-50 rounded-full h-2 overflow-hidden border border-slate-100">
                   <div className="h-full rounded-full diagonal-stripes-teal" style={{ width: '35%' }}></div>
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                  <span>Lainnya (Bahan Pokok)</span>
-                  <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold">11 Pcs</span>
+              
+              {/* Item 4 */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center flex-shrink-0">4</span>
+                    <span className="text-xs font-bold text-slate-800 truncate">V60 Manual Brew Gayo</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-sky-600 flex-shrink-0">18 cup</span>
                 </div>
-                <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full diagonal-stripes-slate" style={{ width: '18%' }}></div>
+                <div className="w-full bg-slate-50 rounded-full h-2 overflow-hidden border border-slate-100">
+                  <div className="h-full rounded-full diagonal-stripes-slate" style={{ width: '26%' }}></div>
                 </div>
               </div>
             </div>
           </div>
           <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-400">Total terjual hari ini</span>
-            <span className="font-extrabold text-slate-900">137 Pcs</span>
+            <span className="text-slate-400">Total item terjual hari ini</span>
+            <span className="font-extrabold text-slate-900">144 Item</span>
           </div>
         </div>
 
@@ -361,7 +385,7 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center justify-between pb-3">
               <h3 className="text-sm font-bold text-slate-900">Transaksi Kasir Terkini</h3>
-              <button className="text-slate-300 hover:text-slate-500" type="button">
+              <button onClick={() => router.push('/transaksi/penjualan')} className="text-slate-300 hover:text-teal-600 transition-colors" type="button" title="Lihat Semua Transaksi">
                 <span className="material-symbols-outlined text-base">more_vert</span>
               </button>
             </div>
@@ -408,9 +432,9 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <a className="pt-3 mt-1 text-center text-xs font-bold text-teal-700 hover:text-teal-800 transition-colors block border-t border-slate-100" href="#">
+          <Link className="pt-3 mt-1 text-center text-xs font-bold text-teal-700 hover:text-teal-800 transition-colors block border-t border-slate-100" href="/transaksi/penjualan">
             Lihat Semua Transaksi &rarr;
-          </a>
+          </Link>
         </div>
 
         {/* Widget 3: Low Stock Alert */}
@@ -424,21 +448,21 @@ export default function DashboardPage() {
               <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">3 Item</span>
             </div>
             <div className="divide-y divide-slate-100">
-              <div className="py-2.5 flex items-center justify-between">
+              <div onClick={() => router.push('/inventory')} className="py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 rounded-xl px-1 -mx-1 transition-colors">
                 <div>
                   <h5 className="text-xs font-bold text-slate-800">Biji Kopi Arabika</h5>
                   <span className="text-[10px] text-slate-400">Min. stok: 15 Pcs</span>
                 </div>
                 <span className="text-xs font-extrabold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100">Sisa 4 Pcs</span>
               </div>
-              <div className="py-2.5 flex items-center justify-between">
+              <div onClick={() => router.push('/inventory')} className="py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 rounded-xl px-1 -mx-1 transition-colors">
                 <div>
                   <h5 className="text-xs font-bold text-slate-800">Susu UHT Diamond 1L</h5>
                   <span className="text-[10px] text-slate-400">Min. stok: 24 Kotak</span>
                 </div>
                 <span className="text-xs font-extrabold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100">Sisa 8 Kotak</span>
               </div>
-              <div className="py-2.5 flex items-center justify-between">
+              <div onClick={() => router.push('/inventory')} className="py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 rounded-xl px-1 -mx-1 transition-colors">
                 <div>
                   <h5 className="text-xs font-bold text-slate-800">Cup Gelas 12oz</h5>
                   <span className="text-[10px] text-slate-400">Min. stok: 50 Pcs</span>
@@ -448,7 +472,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="pt-3 mt-1 border-t border-slate-100">
-            <button className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5" type="button">
+            <button onClick={() => router.push('/transaksi/pembelian')} className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]" type="button">
               <span className="material-symbols-outlined text-[16px] text-teal-700">add_shopping_cart</span>
               <span>Restock Cepat via Pembelian</span>
             </button>

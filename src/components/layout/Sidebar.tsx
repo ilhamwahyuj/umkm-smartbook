@@ -2,8 +2,9 @@
 // src/components/layout/Sidebar.tsx
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { useOrgStore } from "@/stores/useOrgStore";
 import type { UserRole } from "@/types/database";
 
@@ -33,7 +34,7 @@ const navItems: NavGroup[] = [
   {
     group: "Finansial & Gudang",
     items: [
-      { href: "/keuangan/piutang", label: "Piutang & Hutang", icon: "price_check", roles: ["owner", "accounting"] },
+      { href: "/keuangan/piutang-dan-hutang", label: "Piutang & Hutang", icon: "price_check", roles: ["owner", "accounting"] },
       { href: "/keuangan/operasional", label: "Biaya Operasional", icon: "payments", roles: ["owner", "accounting"] },
       { href: "/inventory", label: "Stok & Opname", icon: "inventory_2", roles: ["owner", "admin", "warehouse"] },
     ],
@@ -55,16 +56,24 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
-  const { currentOrg, currentMember, hasRole, setDemoRole } = useOrgStore();
+  const router = useRouter();
+  const { currentOrg, currentMember, hasRole, setDemoRole, clearOrg } = useOrgStore();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    clearOrg();
+    router.push("/login");
+  };
+
   const isActive = (href: string) => {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname.startsWith(href);
+    if (href === "/dashboard" || href === "/pengaturan") return pathname === href;
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
   return (
@@ -140,6 +149,14 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                 </span>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors flex items-center justify-center shrink-0 ml-2 md:hidden"
+              title="Keluar"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[20px]">logout</span>
+            </button>
           </div>
         )}
       </aside>
