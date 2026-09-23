@@ -98,15 +98,15 @@ export default function PembelianPage() {
           </div>
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <button className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
+            <button onClick={() => alert('Fitur Import Faktur akan memunculkan modal upload file (Perlu dibuat form upload).')} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
               <span className="material-symbols-outlined text-[18px] text-secondary">file_upload</span>
               <span>Import Faktur</span>
             </button>
-            <button className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
+            <button onClick={() => alert('Fitur Export Data akan mengunduh file Excel/CSV (Perlu dibuat logic export).')} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
               <span className="material-symbols-outlined text-[18px] text-secondary">download</span>
               <span>Export Data</span>
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed shadow-sm font-label-md text-label-md transition-all" type="button">
+            <button onClick={() => alert('Menu Penerimaan Barang / PO belum ada, apakah perlu saya buatkan halamannya/modalnya?')} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed shadow-sm font-label-md text-label-md transition-all" type="button">
               <span className="material-symbols-outlined text-[18px] text-primary">inventory_2</span>
               <span>Penerimaan Barang / PO</span>
             </button>
@@ -267,7 +267,7 @@ export default function PembelianPage() {
               </div>
             </div>
             <div className="md:col-span-2 flex items-center gap-2">
-              <button className="w-full py-2 px-3 bg-surface hover:bg-surface-container text-secondary hover:text-on-surface rounded-xl font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors" type="button">
+              <button onClick={() => alert('Fitur Filter Detail akan membuka drawer/modal (Perlu dibuatkan komponennya).')} className="w-full py-2 px-3 bg-surface hover:bg-surface-container text-secondary hover:text-on-surface rounded-xl font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors" type="button">
                 <span className="material-symbols-outlined text-[18px]">tune</span>
                 <span>Filter Detail</span>
               </button>
@@ -292,10 +292,10 @@ export default function PembelianPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="p-1.5 text-secondary hover:text-on-surface rounded-lg hover:bg-surface transition-colors" title="Refresh data">
+                  <button onClick={() => alert('Memperbarui data...')} className="p-1.5 text-secondary hover:text-on-surface rounded-lg hover:bg-surface transition-colors" title="Refresh data">
                     <span className="material-symbols-outlined text-lg">refresh</span>
                   </button>
-                  <button className="p-1.5 text-secondary hover:text-on-surface rounded-lg hover:bg-surface transition-colors" title="Pengaturan Kolom">
+                  <button onClick={() => alert('Pengaturan kolom tabel (Perlu dibuat popover/dropdown)')} className="p-1.5 text-secondary hover:text-on-surface rounded-lg hover:bg-surface transition-colors" title="Pengaturan Kolom">
                     <span className="material-symbols-outlined text-lg">view_column</span>
                   </button>
                 </div>
@@ -353,10 +353,10 @@ export default function PembelianPage() {
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <button className="p-1.5 rounded-lg bg-surface hover:bg-surface-container text-secondary hover:text-on-surface shadow-sm" title="Lihat Detail">
+                            <button onClick={(e) => { e.stopPropagation(); alert(`Lihat detail untuk PO ${purchase.purchase_number} (Saat ini sudah tampil di sebelah kanan)`); }} className="p-1.5 rounded-lg bg-surface hover:bg-surface-container text-secondary hover:text-on-surface shadow-sm" title="Lihat Detail">
                               <span className="material-symbols-outlined text-[16px]">visibility</span>
                             </button>
-                            <button className="p-1.5 rounded-lg bg-surface hover:bg-surface-container text-secondary hover:text-on-surface shadow-sm" title="Cetak PO">
+                            <button onClick={(e) => { e.stopPropagation(); alert(`Cetak PO ${purchase.purchase_number} (Perlu dibuat fitur PDF export)`); }} className="p-1.5 rounded-lg bg-surface hover:bg-surface-container text-secondary hover:text-on-surface shadow-sm" title="Cetak PO">
                               <span className="material-symbols-outlined text-[16px]">print</span>
                             </button>
                           </div>
@@ -374,7 +374,7 @@ export default function PembelianPage() {
                   <span className="material-symbols-outlined text-primary text-xl">history_toggle_off</span>
                   <h3 className="font-headline-sm text-headline-sm text-on-surface">Log Mutasi Stok Terakhir (Stock Movement)</h3>
                 </div>
-                <a className="font-label-sm text-label-sm text-primary hover:underline font-bold" href="#">Buka Kartu Stok Lengkap →</a>
+                <button onClick={() => alert('Halaman Kartu Stok Lengkap belum dibuat. Apakah saya perlu buatkan halamannya?')} className="font-label-sm text-label-sm text-primary hover:underline font-bold" type="button">Buka Kartu Stok Lengkap →</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                 {recentMovements?.map(mov => (
@@ -484,16 +484,16 @@ export default function PembelianPage() {
                 {/* Action CTAs */}
                 <div className="space-y-2 pt-1">
                   {selectedPurchase.payment_status !== "paid" && (
-                    <button className="w-full py-3 rounded-xl bg-primary-container text-on-primary hover:bg-teal-accent font-label-lg text-label-lg font-bold shadow-md shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-[0.99]" type="button">
+                    <button onClick={() => alert('Form pelunasan hutang belum dibuat (Perlu dibuat modal).')} className="w-full py-3 rounded-xl bg-primary-container text-on-primary hover:bg-teal-accent font-label-lg text-label-lg font-bold shadow-md shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-[0.99]" type="button">
                       <span className="material-symbols-outlined text-[19px]">account_balance_wallet</span>
                       <span>Catat Pelunasan Hutang</span>
                     </button>
                   )}
-                  <button className="w-full py-2.5 rounded-xl bg-surface text-on-surface hover:bg-surface-container font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-colors" type="button">
+                  <button onClick={() => alert('Fitur Verifikasi Terima Fisik segera hadir (Perlu form penerimaan).')} className="w-full py-2.5 rounded-xl bg-surface text-on-surface hover:bg-surface-container font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-colors" type="button">
                     <span className="material-symbols-outlined text-[18px] text-status-info">verified</span>
                     <span>Verifikasi Terima Fisik Gudang</span>
                   </button>
-                  <button className="w-full py-2 rounded-xl text-secondary hover:text-on-surface font-label-sm text-label-sm flex items-center justify-center gap-1.5 transition-colors" type="button">
+                  <button onClick={() => alert('Fitur cetak PDF sedang disiapkan.')} className="w-full py-2 rounded-xl text-secondary hover:text-on-surface font-label-sm text-label-sm flex items-center justify-center gap-1.5 transition-colors" type="button">
                     <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
                     <span>Cetak Bukti Penerimaan Barang (PDF)</span>
                   </button>
@@ -519,7 +519,7 @@ export default function PembelianPage() {
                 <p className="font-body-sm text-body-sm text-secondary">Sistem mendeteksi {metrics?.lowStockCount || 0} bahan berada di bawah batas minimum stok operasional.</p>
               </div>
             </div>
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-container text-on-primary hover:bg-teal-accent font-label-md text-label-md font-bold shadow-sm transition-all whitespace-nowrap" type="button">
+            <button onClick={() => alert('Fitur Pesan Semua ke Supplier belum berfungsi. Akan butuh integrasi API pemesanan otomatis.')} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-container text-on-primary hover:bg-teal-accent font-label-md text-label-md font-bold shadow-sm transition-all whitespace-nowrap" type="button">
               <span className="material-symbols-outlined text-[18px]">flash_on</span>
               <span>Pesan Semua ke Supplier Sekaligus</span>
             </button>
@@ -537,7 +537,7 @@ export default function PembelianPage() {
                 </div>
                 <div className="pt-2 border-t border-border-subtle/60 flex items-center justify-between">
                   <span className="font-bold text-primary font-body-sm font-tabular-numeric">Order {item.min_stock * 2}</span>
-                  <button className="p-1.5 rounded-lg bg-surface-card hover:bg-primary hover:text-on-primary text-primary shadow-sm transition-colors" title="Pesan Ulang Otomatis" type="button">
+                  <button onClick={() => alert(`Memesan ulang ${item.name} (Fitur belum tersedia)`)} className="p-1.5 rounded-lg bg-surface-card hover:bg-primary hover:text-on-primary text-primary shadow-sm transition-colors" title="Pesan Ulang Otomatis" type="button">
                     <span className="material-symbols-outlined text-base">send</span>
                   </button>
                 </div>

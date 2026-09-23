@@ -218,7 +218,7 @@ export default function RegisterPage() {
 
               <p className="text-xs text-slate-400 text-center mt-4">
                 Dengan mendaftar, Anda menyetujui{" "}
-                <span className="text-emerald-600 cursor-pointer">Syarat & Ketentuan</span>
+                <Link href="/syarat-layanan" className="text-emerald-600 hover:text-emerald-700 font-medium">Syarat & Ketentuan</Link>
               </p>
             </>
           )}
