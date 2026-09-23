@@ -2,13 +2,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const { pathname } = request.nextUrl;
 
   // Public routes - tidak perlu auth
-  const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
+  const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/bantuan"];
   const isPublicRoute = publicRoutes.includes(pathname) || pathname === "/";
 
   // Demo mode bypass — aktif jika cookie demo_mode=true

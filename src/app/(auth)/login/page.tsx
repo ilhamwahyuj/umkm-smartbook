@@ -1,17 +1,26 @@
 "use client";
 // src/app/(auth)/login/page.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/useOrgStore";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { clearOrg } = useOrgStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Clear stale state on mount
+  useEffect(() => {
+    document.cookie = "demo_mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "cashier_mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    clearOrg();
+  }, [clearOrg]);
 
   // New states for form functionality
   const [orgId, setOrgId] = useState("toko.berkah");

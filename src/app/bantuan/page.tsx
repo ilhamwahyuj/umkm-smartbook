@@ -1,12 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useOrgStore } from "@/stores/useOrgStore";
+import { AppShell } from "@/components/layout/AppShell";
+import { createClient } from "@/lib/supabase/client";
 
 export default function PusatBantuanPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isLiveChatOpen, setIsLiveChatOpen] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const hasMember = useOrgStore.getState().currentMember !== null;
+      
+      if (user || (document.cookie.includes("demo_mode=true") && hasMember)) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
   
   // Live Chat State
   const [chatMessages, setChatMessages] = useState<{sender: "user" | "agent", text: string}[]>([
@@ -68,14 +87,22 @@ export default function PusatBantuanPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col w-full p-6 lg:p-12">
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const content = (
+    <div className={isAuthenticated ? "flex flex-col w-full" : "min-h-screen bg-slate-50 flex flex-col w-full p-6 lg:p-12"}>
       <div className="max-w-[1440px] w-full mx-auto space-y-10">
         {/* Back Button */}
         <div className="flex items-center">
-          <a href="/login" className="inline-flex items-center gap-2 text-teal-700 hover:text-teal-800 font-semibold text-sm transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+          <a href={isAuthenticated ? "/dashboard" : "/login"} className="inline-flex items-center gap-2 text-teal-700 hover:text-teal-800 font-semibold text-sm transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
             <span className="material-symbols-outlined text-sm">arrow_back</span>
-            Kembali ke Login
+            {isAuthenticated ? "Kembali ke Dashboard" : "Kembali ke Login"}
           </a>
         </div>
         
@@ -658,4 +685,6 @@ export default function PusatBantuanPage() {
       )}
     </div>
   );
+
+  return isAuthenticated ? <AppShell>{content}</AppShell> : content;
 }

@@ -92,6 +92,8 @@ export function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    document.cookie = "demo_mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "cashier_mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     clearOrg();
     router.push("/login");
   };
