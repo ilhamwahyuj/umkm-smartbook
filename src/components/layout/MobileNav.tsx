@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-  { href: "/transaksi/penjualan/baru", label: "Kasir POS", icon: "point_of_sale" },
+  { href: "/kasir", label: "Kasir POS", icon: "point_of_sale" },
   { href: "/transaksi/penjualan", label: "Transaksi", icon: "receipt_long" },
   { href: "/inventory", label: "Stok", icon: "inventory_2" },
   { href: "/laporan", label: "Laporan", icon: "grid_view" },
@@ -17,6 +17,13 @@ export function MobileNav() {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
+    // if this is the Transaksi tab, ensure it doesn't accidentally light up if we are inside a sub-route that another tab uses.
+    // e.g. if we kept /transaksi/penjualan/baru for Kasir, we'd need a specific check.
+    // Now that Kasir is /kasir, startsWith is fine, but we can make it exact for /transaksi/penjualan if needed.
+    // For safety, let's keep it simple:
+    if (href === "/transaksi/penjualan") {
+      return pathname.startsWith(href) && !pathname.includes("/baru");
+    }
     return pathname.startsWith(href);
   };
 

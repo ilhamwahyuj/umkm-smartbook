@@ -117,12 +117,12 @@ export default function PenjualanBaruPage() {
   }
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-64px-48px)] -mx-6 -mt-6 overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-64px-48px)] -mx-6 -mt-6 lg:overflow-hidden">
       {/* Left: Product Search */}
-      <div className="flex-1 flex flex-col bg-slate-50 p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-slate-50 p-6 min-h-[500px] lg:min-h-0 lg:overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold text-slate-900">Penjualan Baru</h1>
-          <button onClick={() => router.back()} className="btn btn-ghost btn-sm">
+          <button onClick={() => router.back()} className="btn btn-ghost btn-sm hidden lg:flex">
             <X className="w-4 h-4" /> Batal
           </button>
         </div>
@@ -194,9 +194,9 @@ export default function PenjualanBaruPage() {
       </div>
 
       {/* Right: Cart */}
-      <div className="w-80 xl:w-96 flex flex-col bg-white border-l border-slate-200 overflow-hidden">
+      <div className="w-full lg:w-80 xl:w-96 flex flex-col bg-white lg:border-l border-slate-200 lg:overflow-hidden flex-none">
         {/* Cart Header */}
-        <div className="px-5 py-4 border-b border-slate-100">
+        <div className="px-5 py-4 border-t lg:border-t-0 border-b border-slate-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-slate-800">Keranjang</h2>
             {items.length > 0 && (
@@ -264,7 +264,7 @@ export default function PenjualanBaruPage() {
         </div>
 
         {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto px-5 py-3">
+        <div className="flex-1 overflow-y-auto px-5 py-3 min-h-[300px] lg:min-h-0">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <ShoppingCart className="w-12 h-12 text-slate-200 mb-3" />
