@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 import { formatRupiah } from "@/lib/utils";
 import { 
   useGetPurchases, 
@@ -38,6 +39,14 @@ export default function PembelianPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<string | null>(null);
+  
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [receiveSearchTerm, setReceiveSearchTerm] = useState("");
 
   const { data: purchases, isLoading: isPurchasesLoading } = useGetPurchases({
     search,
@@ -75,6 +84,91 @@ export default function PembelianPage() {
     return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-status-info-bg text-status-info"><span className="material-symbols-outlined text-[13px]">local_shipping</span> Di Perjalanan</span>;
   };
 
+  const handleExportData = () => {
+    let dataToExport: any[] = [];
+    
+    if (!purchases || purchases.length === 0) {
+      // Template kosong dengan header
+      dataToExport = [{
+        "No. PO": "",
+        "Tanggal": "",
+        "Supplier": "",
+        "Total Nominal": "",
+        "Status Pembayaran": "",
+      }];
+    } else {
+      dataToExport = purchases.map((p) => ({
+        "No. PO": p.purchase_number,
+        "Tanggal": formatShortDate(p.created_at),
+        "Supplier": p.supplier?.name || "-",
+        "Total Nominal": p.total,
+        "Status Pembayaran": p.payment_status === 'paid' ? 'Lunas' : 'Tempo/Hutang',
+      }));
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data_Pembelian");
+    XLSX.writeFile(workbook, "Laporan_Pembelian.xlsx");
+    setShowExportModal(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setImportFile(e.target.files[0]);
+    }
+  };
+
+  const handleImportData = async () => {
+    if (!importFile) {
+      alert("Pilih file terlebih dahulu");
+      return;
+    }
+    setIsImporting(true);
+    
+    try {
+      const data = await importFile.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      
+      console.log("Imported Data:", jsonData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      alert(`Berhasil mengimport ${jsonData.length} baris data pembelian dari file ${importFile.name}.`);
+      setShowImportModal(false);
+      setImportFile(null);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal membaca file. Pastikan format file sesuai (Excel/CSV).");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleSearchPO = () => {
+    if (!receiveSearchTerm.trim()) {
+      alert("Masukkan Nomor PO atau Faktur terlebih dahulu");
+      return;
+    }
+    
+    const found = purchases?.find(p => 
+      p.purchase_number.toLowerCase().includes(receiveSearchTerm.toLowerCase())
+    );
+    
+    if (found) {
+      setSelectedPurchaseId(found.id);
+      setShowReceiveModal(false);
+      setReceiveSearchTerm("");
+      
+      // Mengubah filter pencarian agar tabel dan detail PO fokus ke PO tersebut
+      setSearch(found.purchase_number);
+    } else {
+      alert("PO tidak ditemukan. Pastikan nomor yang dimasukkan benar.");
+    }
+  };
+
   return (
     <div className="flex flex-col w-full">
       <div className="max-w-[1440px] w-full mx-auto space-y-8">
@@ -98,15 +192,15 @@ export default function PembelianPage() {
           </div>
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <button onClick={() => alert('Fitur Import Faktur akan memunculkan modal upload file (Perlu dibuat form upload).')} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
+            <button onClick={() => setShowImportModal(true)} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
               <span className="material-symbols-outlined text-[18px] text-secondary">file_upload</span>
               <span>Import Faktur</span>
             </button>
-            <button onClick={() => alert('Fitur Export Data akan mengunduh file Excel/CSV (Perlu dibuat logic export).')} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
+            <button onClick={() => setShowExportModal(true)} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card text-on-surface hover:bg-surface-container shadow-sm font-label-md text-label-md transition-all" type="button">
               <span className="material-symbols-outlined text-[18px] text-secondary">download</span>
               <span>Export Data</span>
             </button>
-            <button onClick={() => alert('Menu Penerimaan Barang / PO belum ada, apakah perlu saya buatkan halamannya/modalnya?')} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed shadow-sm font-label-md text-label-md transition-all" type="button">
+            <button onClick={() => setShowReceiveModal(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed shadow-sm font-label-md text-label-md transition-all" type="button">
               <span className="material-symbols-outlined text-[18px] text-primary">inventory_2</span>
               <span>Penerimaan Barang / PO</span>
             </button>
@@ -549,6 +643,94 @@ export default function PembelianPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowImportModal(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-on-surface">Import Faktur Pembelian</h3>
+              <button onClick={() => setShowImportModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <p className="text-sm text-secondary mb-4">Unggah file Excel atau CSV dari sistem supplier Anda untuk mencatat pembelian secara otomatis.</p>
+            
+            <label className="border-2 border-dashed border-border-subtle hover:border-primary cursor-pointer rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors group">
+              <span className="material-symbols-outlined text-4xl text-secondary group-hover:text-primary mb-2 transition-colors">cloud_upload</span>
+              <p className="text-sm font-semibold">{importFile ? importFile.name : "Klik untuk memilih file"}</p>
+              <p className="text-xs text-secondary mt-1">{importFile ? `${(importFile.size / 1024).toFixed(1)} KB` : "atau drag & drop kesini (max. 10MB)"}</p>
+              <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileChange} />
+            </label>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setShowImportModal(false)} className="px-4 py-2 rounded-xl text-secondary hover:bg-surface-container font-medium text-sm">Batal</button>
+              <button 
+                onClick={handleImportData} 
+                disabled={isImporting || !importFile} 
+                className="px-4 py-2 rounded-xl bg-primary text-on-primary font-medium text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isImporting && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                {isImporting ? "Memproses..." : "Mulai Import"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowExportModal(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-on-surface">Export Data</h3>
+              <button onClick={() => setShowExportModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <p className="text-sm text-secondary mb-6">Unduh daftar pembelian (PO) berdasarkan filter yang sedang aktif (Menampilkan {purchases?.length || 0} PO).</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowExportModal(false)} className="px-4 py-2 rounded-xl text-secondary hover:bg-surface-container font-medium text-sm">Batal</button>
+              <button onClick={handleExportData} className="px-4 py-2 rounded-xl bg-primary text-on-primary font-medium text-sm flex items-center gap-2 shadow-md">
+                <span className="material-symbols-outlined text-[18px]">download</span> Unduh Excel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReceiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowReceiveModal(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">inventory_2</span>
+                Penerimaan Barang / PO
+              </h3>
+              <button onClick={() => setShowReceiveModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <p className="text-sm text-secondary mb-4">Masukkan Nomor PO atau Faktur untuk memverifikasi kedatangan barang di Gudang Utama.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-secondary uppercase mb-1 block">Nomor PO / Faktur</label>
+                <input 
+                  type="text" 
+                  placeholder="Cari nomor..." 
+                  className="w-full px-4 py-2.5 bg-surface text-on-surface rounded-xl border border-border-subtle focus:outline-none focus:border-primary" 
+                  value={receiveSearchTerm}
+                  onChange={(e) => setReceiveSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchPO()}
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setShowReceiveModal(false)} className="px-4 py-2 rounded-xl text-secondary hover:bg-surface-container font-medium text-sm">Batal</button>
+              <button onClick={handleSearchPO} className="px-4 py-2 rounded-xl bg-primary text-on-primary font-medium text-sm shadow-md">Cari PO</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

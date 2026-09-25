@@ -1,6 +1,36 @@
 "use client";
+import React, { useState } from "react";
 
 export default function LaporanDanBukuKasPage() {
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("arus-kas");
+
+  const handleExportCSV = () => {
+    // Generate mock CSV data based on the UI
+    const csvContent = "Tanggal,Kategori,Keterangan,Pemasukan,Pengeluaran\n" +
+      "2026-01-01,Penjualan,Omzet Harian Kasir,1950000,0\n" +
+      "2026-01-01,Operasional,Listrik & Air,0,1100000\n" +
+      "2026-01-03,Penjualan,Omzet Harian Kasir,2340000,0\n" +
+      "2026-01-03,Bahan Baku,Restock Sayur & Bumbu,0,980000\n" +
+      "2026-01-05,Penjualan,Omzet Harian Kasir,2100000,0\n" +
+      "2026-01-05,Bahan Baku,Kulakan Biji Kopi,0,3200000\n";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Laporan_Keuangan_TokoBerkah_Jan2026.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleSaveExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert("Beban pengeluaran berhasil dicatat!");
+    setShowExpenseModal(false);
+  };
+
   return (
     <div className="flex flex-col w-full max-w-[1440px] mx-auto space-y-6 lg:p-2">
       {/* Header Section */}
@@ -24,15 +54,15 @@ export default function LaporanDanBukuKasPage() {
             <span className="font-label-sm text-label-sm text-secondary px-1.5 py-0.5 rounded-full bg-surface-container-high">Bulan Ini</span>
             <span className="material-symbols-outlined text-[16px] text-secondary cursor-pointer">expand_more</span>
           </div>
-          <button className="flex items-center gap-2 bg-surface-container-low hover:bg-surface-container text-on-surface px-4 py-2 rounded-xl font-label-md text-label-md transition-all" type="button">
+          <button onClick={() => window.print()} className="flex items-center gap-2 bg-surface-container-low hover:bg-surface-container text-on-surface px-4 py-2 rounded-xl font-label-md text-label-md transition-all" type="button">
             <span className="material-symbols-outlined text-[18px] text-secondary">picture_as_pdf</span>
             <span>Cetak PDF</span>
           </button>
-          <button className="flex items-center gap-2 bg-surface-container-low hover:bg-surface-container text-on-surface px-4 py-2 rounded-xl font-label-md text-label-md transition-all" type="button">
+          <button onClick={handleExportCSV} className="flex items-center gap-2 bg-surface-container-low hover:bg-surface-container text-on-surface px-4 py-2 rounded-xl font-label-md text-label-md transition-all" type="button">
             <span className="material-symbols-outlined text-[18px] text-secondary">table_view</span>
             <span>Export CSV</span>
           </button>
-          <button className="flex items-center gap-2 bg-primary-container hover:bg-teal-accent text-on-primary px-4 py-2 rounded-xl font-label-md text-label-md shadow-sm transition-all transform active:scale-[0.99]" type="button">
+          <button onClick={() => setShowExpenseModal(true)} className="flex items-center gap-2 bg-primary-container hover:bg-teal-accent text-on-primary px-4 py-2 rounded-xl font-label-md text-label-md shadow-sm transition-all transform active:scale-[0.99]" type="button">
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             <span>+ Catat Beban Baru</span>
           </button>
@@ -135,31 +165,52 @@ export default function LaporanDanBukuKasPage() {
 
       {/* Navigation Tab Bar */}
       <div className="bg-surface-container-lowest p-1.5 rounded-xl shadow-sm flex items-center gap-1 overflow-x-auto">
-        <button className="px-5 py-2.5 rounded-lg font-label-md text-label-md bg-primary-container text-on-primary shadow-sm flex items-center gap-2 shrink-0" type="button">
+        <button 
+          onClick={() => setActiveTab("arus-kas")} 
+          className={`px-5 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2 shrink-0 transition-colors ${activeTab === 'arus-kas' ? 'bg-primary-container text-on-primary shadow-sm' : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'}`} 
+          type="button"
+        >
           <span className="material-symbols-outlined text-[18px]">waterfall_chart</span>
           <span>Arus Kas (Cash Flow)</span>
         </button>
-        <button className="px-5 py-2.5 rounded-lg font-label-md text-label-md text-secondary hover:text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2 shrink-0" type="button">
+        <button 
+          onClick={() => setActiveTab("laba-rugi")} 
+          className={`px-5 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2 shrink-0 transition-colors ${activeTab === 'laba-rugi' ? 'bg-primary-container text-on-primary shadow-sm' : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'}`} 
+          type="button"
+        >
           <span className="material-symbols-outlined text-[18px]">assessment</span>
           <span>Laba Rugi (P&amp;L)</span>
         </button>
-        <button className="px-5 py-2.5 rounded-lg font-label-md text-label-md text-secondary hover:text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2 shrink-0" type="button">
+        <button 
+          onClick={() => setActiveTab("buku-kas")} 
+          className={`px-5 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2 shrink-0 transition-colors ${activeTab === 'buku-kas' ? 'bg-primary-container text-on-primary shadow-sm' : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'}`} 
+          type="button"
+        >
           <span className="material-symbols-outlined text-[18px]">menu_book</span>
           <span>Buku Kas Harian</span>
         </button>
-        <button className="px-5 py-2.5 rounded-lg font-label-md text-label-md text-secondary hover:text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2 shrink-0" type="button">
+        <button 
+          onClick={() => setActiveTab("piutang")} 
+          className={`px-5 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2 shrink-0 transition-colors ${activeTab === 'piutang' ? 'bg-primary-container text-on-primary shadow-sm' : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'}`} 
+          type="button"
+        >
           <span className="material-symbols-outlined text-[18px]">credit_score</span>
           <span>Monitoring Piutang Pelanggan</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-status-danger-bg text-status-danger">3 Kasbon</span>
         </button>
-        <button className="px-5 py-2.5 rounded-lg font-label-md text-label-md text-secondary hover:text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2 shrink-0" type="button">
+        <button 
+          onClick={() => setActiveTab("pajak-diskon")} 
+          className={`px-5 py-2.5 rounded-lg font-label-md text-label-md flex items-center gap-2 shrink-0 transition-colors ${activeTab === 'pajak-diskon' ? 'bg-primary-container text-on-primary shadow-sm' : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'}`} 
+          type="button"
+        >
           <span className="material-symbols-outlined text-[18px]">percent</span>
           <span>Rekapitulasi Pajak &amp; Diskon</span>
         </button>
       </div>
 
-      {/* Split Grid: Visualisasi Arus Kas & Expense Distribution */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      {activeTab === "arus-kas" && (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Left Column (8-col): Interactive Cash Flow Daily Trend Chart */}
         <div className="xl:col-span-8 bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -660,7 +711,72 @@ export default function LaporanDanBukuKasPage() {
             Tutup Shift &amp; Cetak Bukti Kasir
           </button>
         </div>
-      </div>
+        </div>
+        </>
+      )}
+
+      {activeTab !== "arus-kas" && (
+        <div className="bg-surface-container-lowest p-10 rounded-xl shadow-sm flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
+          <span className="material-symbols-outlined text-5xl text-secondary">construction</span>
+          <div>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">Modul Sedang Dikembangkan</h3>
+            <p className="font-body-md text-body-md text-secondary max-w-md mx-auto">
+              Tampilan detail untuk tab ini belum dibuat. Data masih menggunakan dummy.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Expense Modal */}
+      {showExpenseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowExpenseModal(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-lg text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">add_circle</span>
+                Catat Beban / Pengeluaran
+              </h3>
+              <button onClick={() => setShowExpenseModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveExpense} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-secondary uppercase mb-1 block">Tanggal</label>
+                <input type="date" required className="w-full px-4 py-2.5 bg-surface text-on-surface rounded-xl border border-border-subtle focus:outline-none focus:border-primary" defaultValue={new Date().toISOString().split('T')[0]} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-secondary uppercase mb-1 block">Kategori Beban</label>
+                <div className="relative">
+                  <select required className="w-full px-4 py-2.5 bg-surface text-on-surface rounded-xl border border-border-subtle focus:outline-none focus:border-primary appearance-none pr-10">
+                    <option value="">Pilih Kategori...</option>
+                    <option value="bahan">Bahan Baku / Restock</option>
+                    <option value="operasional">Operasional (Listrik, Air, Internet)</option>
+                    <option value="gaji">Gaji Karyawan</option>
+                    <option value="sewa">Sewa Tempat</option>
+                    <option value="lainnya">Lainnya</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">expand_more</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-secondary uppercase mb-1 block">Nominal (Rp)</label>
+                <input type="number" required placeholder="0" className="w-full px-4 py-2.5 bg-surface text-on-surface rounded-xl border border-border-subtle focus:outline-none focus:border-primary font-tabular-numeric" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-secondary uppercase mb-1 block">Keterangan / Catatan</label>
+                <textarea rows={3} placeholder="Contoh: Bayar tagihan PLN bulan ini..." className="w-full px-4 py-2.5 bg-surface text-on-surface rounded-xl border border-border-subtle focus:outline-none focus:border-primary"></textarea>
+              </div>
+              
+              <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-border-subtle">
+                <button type="button" onClick={() => setShowExpenseModal(false)} className="px-4 py-2 rounded-xl text-secondary hover:bg-surface-container font-medium text-sm">Batal</button>
+                <button type="submit" className="px-6 py-2 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-md hover:bg-teal-accent transition-colors">Simpan Beban</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

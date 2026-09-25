@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── TYPES ──────────────────────────────────────────
 type Category = "semua" | "kopi" | "makanan" | "dessert" | "bahan";
@@ -95,6 +96,9 @@ export default function KasirPOSPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("Walk-in Guest");
   const [successMsg, setSuccessMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const supabase = createClient();
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -148,12 +152,45 @@ export default function KasirPOSPage() {
     setCart(prev => prev.map(i => i.product.id === productId ? { ...i, notes: note } : i));
   }, []);
 
-  const handlePay = useCallback(() => {
-    setShowPayConfirm(false);
-    setCart([]);
-    setSelectedCash(null);
-    showSuccess("Pembayaran berhasil! Struk sedang dicetak...");
-  }, []);
+  const handlePay = useCallback(async () => {
+    setIsSubmitting(true);
+    
+    try {
+      const transactionData = {
+        customer_name: customerName,
+        order_type: orderType,
+        payment_method: paymentMethod,
+        subtotal: subtotal,
+        discount: discount,
+        tax: tax,
+        grand_total: grandTotal,
+        items: cart.map(item => ({
+          product_id: item.product.id,
+          product_name: item.product.name,
+          qty: item.qty,
+          price: item.product.price,
+          notes: item.notes,
+          variants: item.variants
+        }))
+      };
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([transactionData]);
+
+      if (error) throw error;
+
+      setShowPayConfirm(false);
+      setCart([]);
+      setSelectedCash(null);
+      showSuccess("Pembayaran berhasil disimpan ke database!");
+    } catch (error: any) {
+      console.error("Error saving transaction:", error);
+      alert("Gagal menyimpan transaksi: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [cart, customerName, orderType, paymentMethod, subtotal, discount, tax, grandTotal, supabase]);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -632,8 +669,10 @@ export default function KasirPOSPage() {
               )}
             </div>
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => setShowPayConfirm(false)} className="py-3 rounded-xl bg-surface-container-low border border-border-subtle text-on-surface text-sm font-semibold hover:bg-surface-container transition-all" type="button">Batal</button>
-              <button onClick={handlePay} className="py-3 rounded-xl bg-primary text-on-primary text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all" type="button">Bayar Sekarang</button>
+              <button onClick={() => setShowPayConfirm(false)} className="py-3 rounded-xl bg-surface-container-low border border-border-subtle text-on-surface text-sm font-semibold hover:bg-surface-container transition-all" type="button" disabled={isSubmitting}>Batal</button>
+              <button onClick={handlePay} className="py-3 rounded-xl bg-primary text-on-primary text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50" type="button" disabled={isSubmitting}>
+                {isSubmitting ? "Menyimpan..." : "Bayar Sekarang"}
+              </button>
             </div>
           </div>
         </div>

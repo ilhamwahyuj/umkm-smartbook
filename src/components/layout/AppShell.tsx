@@ -56,22 +56,27 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="bg-[#F8FAFC] text-slate-900 font-sans antialiased min-h-screen">
       {/* Desktop & Mobile Sidebar */}
-      <Topbar onMobileMenuOpen={() => setMobileOpen(true)} />
+      <div className="print:hidden">
+        <Topbar onMobileMenuOpen={() => setMobileOpen(true)} />
+      </div>
 
-      <div className="flex pt-16 min-h-screen">
-        <Sidebar
-          mobileOpen={mobileOpen}
-          onMobileClose={() => setMobileOpen(false)}
-        />
+      <div className="flex pt-16 print:pt-0 min-h-screen">
+        <div className="print:hidden">
+          <Sidebar
+            mobileOpen={mobileOpen}
+            onMobileClose={() => setMobileOpen(false)}
+          />
+        </div>
         
-        {/* Main Content Area */}
-        <main className="flex-1 w-full md:ml-60 p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl pb-24 md:pb-6">
+        <main className="flex-1 w-full md:ml-60 p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl pb-24 md:pb-6 print:ml-0 print:p-0 print:m-0 print:w-full print:max-w-none">
           {children}
         </main>
       </div>
 
       {/* Mobile Bottom Nav */}
-      <MobileNav />
+      <div className="print:hidden">
+        <MobileNav />
+      </div>
     </div>
   );
 }
