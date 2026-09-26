@@ -43,7 +43,7 @@ export default function LaporanDanBukuKasPage() {
             <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight">Laporan Finansial &amp; Buku Kas</h1>
           </div>
           <p className="font-body-md text-body-md text-secondary">
-            Rekapitulasi arus kas (cashflow), laba rugi bersih, buku kas harian, dan monitoring hutang piutang Toko Berkah.
+            Rekapitulasi arus kas (cashflow), laba rugi bersih, buku kas harian, dan monitoring hutang piutang Toko Anda.
           </p>
         </div>
         {/* Actions & Period Filter */}

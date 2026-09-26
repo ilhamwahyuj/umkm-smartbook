@@ -138,7 +138,7 @@ export function Topbar({ onMobileMenuOpen }: TopbarProps) {
               className="md:hidden flex items-center gap-1 bg-teal-50 px-2 py-0.5 mt-1 rounded-full text-left max-w-[150px]" 
               type="button"
             >
-              <span className="text-[10px] text-teal-700 truncate font-semibold">{currentOrg?.name || 'Toko Berkah'}</span>
+              <span className="text-[10px] text-teal-700 truncate font-semibold">{currentOrg?.name || 'Toko Anda'}</span>
               <span className="material-symbols-outlined text-[14px] text-teal-700 leading-none flex-shrink-0">expand_more</span>
             </button>
           </div>

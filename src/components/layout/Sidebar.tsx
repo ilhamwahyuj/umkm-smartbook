@@ -147,7 +147,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                   {currentMember?.role === 'owner' ? 'Owner / Admin' : 'Dewi Astuti'}
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium truncate">
-                  {currentOrg?.name || 'toko.berkah@smartbook.id'}
+                  {currentOrg?.name || 'toko.anda@smartbook.id'}
                 </span>
               </div>
             </div>

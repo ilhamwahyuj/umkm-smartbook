@@ -86,7 +86,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2.5 shrink-0">
           <button onClick={() => router.push('/pengaturan/profil-usaha')} className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-2xl border border-slate-200/90 shadow-sm transition-all" type="button">
             <span className="material-symbols-outlined text-teal-700 text-sm">storefront</span>
-            <span>Outlet Utama - Toko Berkah Sentosa</span>
+            <span>Outlet Utama - Toko Anda Sentosa</span>
           </button>
           <button onClick={() => router.push('/kasir')} className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0F766E] hover:bg-[#0D9488] text-white font-bold text-xs rounded-2xl shadow-sm shadow-teal-700/20 active:scale-95 transition-all" type="button">
             <span className="material-symbols-outlined text-base">add</span>

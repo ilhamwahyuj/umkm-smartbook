@@ -748,7 +748,7 @@ export default function BiayaOperasionalPage() {
                   <span className="material-symbols-outlined text-secondary text-[18px]">local_drink</span>
                   <div>
                     <div className="font-label-md text-[12px] font-semibold tracking-[0.02em] text-on-surface font-semibold">Isi Ulang 2 Galon Cleo</div>
-                    <div className="font-body-sm text-[12px] leading-[16px] text-secondary">Toko Berkah Air • 15:05 WIB</div>
+                    <div className="font-body-sm text-[12px] leading-[16px] text-secondary">Toko Anda Air • 15:05 WIB</div>
                   </div>
                 </div>
                 <span className="font-tabular-numeric text-[14px] font-semibold leading-[20px] font-bold text-status-danger">- Rp 38.000</span>

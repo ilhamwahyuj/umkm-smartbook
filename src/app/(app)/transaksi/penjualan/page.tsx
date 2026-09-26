@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/useOrgStore";
 
 export default function TransaksiPenjualanPage() {
   const router = useRouter();
@@ -26,184 +28,111 @@ export default function TransaksiPenjualanPage() {
     setCurrentPage(1);
   }, [searchQuery, activeFilter, filterDate, filterMethod, filterCashier, filterType]);
 
-  const [transactions, setTransactions] = useState([
-    {
-      id: "TRX-20260119-0042",
-      time: "14:28 WIB",
-      customer: "Walk-in Guest",
-      customerDesc: "Meja 04",
-      customerIcon: "table_restaurant",
-      cashier: "Budi Santoso",
-      menuCount: "3 Menu",
-      pcsCount: "(4 pcs)",
-      itemsDesc: "Kopi Susu Aren, Croissant...",
-      method: "QRIS",
-      methodIcon: "qr_code_scanner",
-      methodBg: "bg-status-success-bg text-status-success",
-      status: "LUNAS",
-      statusBg: "bg-status-success-bg text-status-success",
-      total: "Rp 101.200",
-      totalColor: "text-on-surface",
-      note: "Disc Rp 10k",
-      indicator: "bg-primary-container",
-      items: [
-        { name: "Kopi Susu Aren", price: "Rp 22.000", qty: 2, note: "Less Sugar, Ice Regular", total: "Rp 44.000" },
-        { name: "Croissant Butter", price: "Rp 28.000", qty: 1, note: "Hangatkan Crispy", total: "Rp 28.000" },
-        { name: "Americano Ice", price: "Rp 18.000", qty: 1, note: "Normal Ice", total: "Rp 18.000" }
-      ],
-      subtotal: "Rp 90.000",
-      discount: "- Rp 10.000",
-      tax: "Rp 9.200",
-      paymentRef: "QRIS Dinamis (QR-98214-BCA)",
-      acquirer: "BCA Interactive QR"
-    },
-    {
-      id: "TRX-20260119-0041",
-      time: "14:15 WIB",
-      customer: "Ibu Ratna Dewi",
-      customerDesc: "Bungkus",
-      customerIcon: "shopping_bag",
-      cashier: "Siti Aminah",
-      menuCount: "2 Menu",
-      pcsCount: "(2 pcs)",
-      itemsDesc: "Earl Grey Milk Tea, Choco...",
-      method: "Tunai",
-      methodIcon: "payments",
-      methodBg: "bg-surface-container text-secondary",
-      status: "LUNAS",
-      statusBg: "bg-status-success-bg text-status-success",
-      total: "Rp 56.000",
-      totalColor: "text-on-surface",
-      note: "Pas Rp 60k",
-      indicator: "bg-transparent",
-      items: [
-        { name: "Earl Grey Milk Tea", price: "Rp 26.000", qty: 1, note: "Boba", total: "Rp 26.000" },
-        { name: "Choco Hazelnut", price: "Rp 30.000", qty: 1, note: "", total: "Rp 30.000" }
-      ],
-      subtotal: "Rp 56.000",
-      discount: "Rp 0",
-      tax: "Rp 0",
-      paymentRef: "Tunai",
-      acquirer: "Cash Drawer"
-    },
-    {
-      id: "TRX-20260119-0040",
-      time: "13:50 WIB",
-      customer: "Kafe Senja Mandiri",
-      customerDesc: "B2B Kemitraan",
-      customerIcon: "local_shipping",
-      cashier: "Budi Santoso",
-      menuCount: "4 Menu",
-      pcsCount: "(20 pcs)",
-      itemsDesc: "Biji Kopi House Blend 1kg, Sirup...",
-      method: "Kasbon",
-      methodIcon: "schedule",
-      methodBg: "bg-status-warning-bg text-status-warning",
-      status: "TEMPO (26 Jan)",
-      statusBg: "bg-status-warning-bg text-status-warning",
-      total: "Rp 850.000",
-      totalColor: "text-status-warning",
-      note: "DP: Rp 0",
-      indicator: "bg-status-warning",
-      items: [
-        { name: "Biji Kopi House Blend 1kg", price: "Rp 150.000", qty: 5, note: "Giling Kasar", total: "Rp 750.000" },
-        { name: "Sirup Vanilla 1L", price: "Rp 100.000", qty: 1, note: "", total: "Rp 100.000" }
-      ],
-      subtotal: "Rp 850.000",
-      discount: "Rp 0",
-      tax: "Rp 0",
-      paymentRef: "Faktur Tempo (7 Hari)",
-      acquirer: "Piutang B2B"
-    },
-    {
-      id: "TRX-20260119-0039",
-      time: "13:12 WIB",
-      customer: "Bpk. Hendra Wijaya",
-      customerDesc: "Dine-in",
-      customerIcon: "storefront",
-      cashier: "Siti Aminah",
-      menuCount: "5 Menu",
-      pcsCount: "(7 pcs)",
-      itemsDesc: "Nasi Goreng Spesial, Es Teh...",
-      method: "BCA Trf",
-      methodIcon: "account_balance",
-      methodBg: "bg-status-info-bg text-status-info",
-      status: "LUNAS",
-      statusBg: "bg-status-success-bg text-status-success",
-      total: "Rp 235.000",
-      totalColor: "text-on-surface",
-      note: "Ref #8812",
-      indicator: "bg-transparent",
-      items: [
-        { name: "Nasi Goreng Spesial", price: "Rp 45.000", qty: 3, note: "Pedas Sedang", total: "Rp 135.000" },
-        { name: "Es Teh Manis", price: "Rp 10.000", qty: 4, note: "", total: "Rp 40.000" },
-        { name: "Tahu Walik", price: "Rp 25.000", qty: 2, note: "Goreng Kering", total: "Rp 50.000" }
-      ],
-      subtotal: "Rp 225.000",
-      discount: "Rp 0",
-      tax: "Rp 10.000",
-      paymentRef: "BCA Transfer (#8812)",
-      acquirer: "Mutasi Rekening"
-    },
-    {
-      id: "TRX-20260119-0038",
-      time: "12:45 WIB",
-      customer: "Catering Bu Dimas",
-      customerDesc: "Pre-Order",
-      customerIcon: "event",
-      cashier: "Budi Santoso",
-      menuCount: "2 Menu",
-      pcsCount: "(30 box)",
-      itemsDesc: "Snack Box Premium, Kopi Literan",
-      method: "DP QRIS",
-      methodIcon: "price_change",
-      methodBg: "bg-status-info-bg text-status-info",
-      status: "DP 50%",
-      statusBg: "bg-status-info-bg text-status-info",
-      total: "Rp 380.000",
-      totalColor: "text-on-surface",
-      note: "Sisa Rp 380k",
-      noteColor: "text-status-warning",
-      indicator: "bg-status-info",
-      items: [
-        { name: "Snack Box Premium", price: "Rp 20.000", qty: 25, note: "Isi 3 Macam Kue", total: "Rp 500.000" },
-        { name: "Kopi Susu Literan", price: "Rp 85.000", qty: 2, note: "", total: "Rp 170.000" }
-      ],
-      subtotal: "Rp 670.000",
-      discount: "Rp 0",
-      tax: "Rp 90.000",
-      paymentRef: "QRIS DP (50%)",
-      acquirer: "BCA Interactive QR"
-    },
-    {
-      id: "TRX-20260119-0037",
-      time: "12:30 WIB",
-      customer: "Rian Kusuma",
-      customerDesc: "Meja 02",
-      customerIcon: "storefront",
-      cashier: "Siti Aminah",
-      menuCount: "1 Menu",
-      pcsCount: "(1 pcs)",
-      itemsDesc: "Matcha Oat Latte Jumbo",
-      method: "QRIS",
-      methodIcon: "qr_code_scanner",
-      methodBg: "bg-status-success-bg text-status-success",
-      status: "LUNAS",
-      statusBg: "bg-status-success-bg text-status-success",
-      total: "Rp 32.000",
-      totalColor: "text-on-surface",
-      note: "No promo",
-      indicator: "bg-transparent",
-      items: [
-        { name: "Matcha Oat Latte Jumbo", price: "Rp 32.000", qty: 1, note: "Oat Milk", total: "Rp 32.000" }
-      ],
-      subtotal: "Rp 32.000",
-      discount: "Rp 0",
-      tax: "Rp 0",
-      paymentRef: "QRIS Dinamis (QR-4451)",
-      acquirer: "Gopay"
-    },
-  ]);
+  const { currentOrg } = useOrgStore();
+  const supabase = createClient();
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    let orgId = currentOrg?.id || '11111111-1111-1111-1111-111111111111';
+
+    const fetchTransactions = async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select(`*`)
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching transactions:", error);
+        return;
+      }
+
+      const formatted = data.map(trx => {
+        const time = new Date(trx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+        
+        let customerIcon = "storefront";
+        let customerDesc = "Dine-in";
+        if (trx.order_type === 'bungkus') {
+          customerIcon = "shopping_bag";
+          customerDesc = "Bungkus";
+        } else if (trx.order_type === 'antar') {
+          customerIcon = "local_shipping";
+          customerDesc = "Antar";
+        }
+
+        let methodIcon = "payments";
+        let methodBg = "bg-surface-container text-secondary";
+        let methodName = "Tunai";
+        if (trx.payment_method === 'qris') {
+          methodIcon = "qr_code_scanner";
+          methodBg = "bg-status-success-bg text-status-success";
+          methodName = "QRIS";
+        } else if (trx.payment_method === 'transfer') {
+          methodIcon = "account_balance";
+          methodBg = "bg-status-info-bg text-status-info";
+          methodName = "Transfer";
+        } else if (trx.payment_method === 'kasbon') {
+          methodIcon = "schedule";
+          methodBg = "bg-status-warning-bg text-status-warning";
+          methodName = "Kasbon";
+        }
+
+        const menuCount = Array.isArray(trx.items) ? trx.items.length : 0;
+        const pcsCount = Array.isArray(trx.items) ? trx.items.reduce((sum: number, item: any) => sum + (item.qty || 0), 0) : 0;
+        const itemsDesc = Array.isArray(trx.items) ? trx.items.map((i: any) => i.product_name).join(', ').substring(0, 30) + (trx.items.length > 2 ? '...' : '') : "";
+        
+        const formatRp = (n: number) => "Rp " + Number(n).toLocaleString('id-ID');
+
+        return {
+          id: trx.id.split('-')[0].toUpperCase() + '-' + trx.id.substring(0, 4), // Shortened UUID for UI
+          time: time,
+          customer: trx.customer_name || 'Walk-in Guest',
+          customerDesc: customerDesc,
+          customerIcon: customerIcon,
+          cashier: 'Kasir',
+          menuCount: `${menuCount} Menu`,
+          pcsCount: `(${pcsCount} pcs)`,
+          itemsDesc: itemsDesc,
+          method: methodName,
+          methodIcon: methodIcon,
+          methodBg: methodBg,
+          status: trx.payment_method === 'kasbon' ? 'TEMPO' : 'LUNAS',
+          statusBg: trx.payment_method === 'kasbon' ? 'bg-status-warning-bg text-status-warning' : 'bg-status-success-bg text-status-success',
+          total: formatRp(trx.grand_total),
+          totalColor: trx.payment_method === 'kasbon' ? 'text-status-warning' : 'text-on-surface',
+          note: trx.discount > 0 ? `Disc ${formatRp(trx.discount)}` : '-',
+          indicator: trx.payment_method === 'kasbon' ? 'bg-status-warning' : 'bg-primary-container',
+          items: Array.isArray(trx.items) ? trx.items.map((i: any) => ({
+            name: i.product_name,
+            price: formatRp(i.price),
+            qty: i.qty,
+            note: i.notes || (i.variants ? i.variants.join(', ') : ""),
+            total: formatRp(i.price * i.qty)
+          })) : [],
+          subtotal: formatRp(trx.subtotal),
+          discount: formatRp(trx.discount),
+          tax: formatRp(trx.tax),
+          paymentRef: methodName,
+          acquirer: "Sistem Kasir"
+        };
+      });
+
+      setTransactions(formatted);
+    };
+
+    fetchTransactions();
+
+    // Subscribe to realtime changes
+    const channel = supabase.channel('realtime:transactions')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter: `org_id=eq.${orgId}` }, () => {
+        fetchTransactions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentOrg, supabase]);
 
   const [showRekapModal, setShowRekapModal] = useState(false);
   const [showVoidModal, setShowVoidModal] = useState(false);
@@ -252,6 +181,12 @@ export default function TransaksiPenjualanPage() {
   const countDP = transactions.filter(t => t.status.includes("DP")).length;
   const countTempo = transactions.filter(t => t.status.includes("TEMPO")).length;
   const countVoid = transactions.filter(t => t.status === "VOID").length;
+
+  const totalPenjualan = transactions.reduce((sum, trx) => sum + parseInt(trx.total.replace(/\D/g, '') || '0'), 0);
+  const lunasTerbayar = transactions.filter(trx => trx.status !== 'TEMPO' && trx.status !== 'VOID').reduce((sum, trx) => sum + parseInt(trx.total.replace(/\D/g, '') || '0'), 0);
+  const kasbonPiutang = transactions.filter(trx => trx.status === 'TEMPO').reduce((sum, trx) => sum + parseInt(trx.total.replace(/\D/g, '') || '0'), 0);
+  const aov = transactions.length > 0 ? Math.round(totalPenjualan / transactions.length) : 0;
+  const formatRp = (n: number) => "Rp " + Number(n).toLocaleString('id-ID');
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -315,17 +250,17 @@ export default function TransaksiPenjualanPage() {
             </span>
           </div>
           <div>
-            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">Rp 14.850.000</div>
+            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">{formatRp(totalPenjualan)}</div>
             <div className="flex items-center gap-2 mt-1">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-status-success-bg text-status-success font-label-sm text-[11px] font-semibold">
                 <span className="material-symbols-outlined text-xs">trending_up</span>
-                +8.4%
+                +0%
               </span>
-              <span className="font-body-sm text-[12px] text-secondary">vs kemarin • 142 Struk</span>
+              <span className="font-body-sm text-[12px] text-secondary">hari ini • {transactions.length} Struk</span>
             </div>
           </div>
           <div className="h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
-            <div className="h-full bg-primary-container rounded-full" style={{ width: '78%' }}></div>
+            <div className="h-full bg-primary-container rounded-full" style={{ width: '100%' }}></div>
           </div>
         </div>
 
@@ -337,16 +272,16 @@ export default function TransaksiPenjualanPage() {
             </span>
           </div>
           <div>
-            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">Rp 13.620.000</div>
+            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">{formatRp(lunasTerbayar)}</div>
             <div className="flex items-center gap-2 mt-1">
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-[11px] font-bold">
-                91.7%
+                {totalPenjualan > 0 ? Math.round((lunasTerbayar/totalPenjualan)*100) : 0}%
               </span>
               <span className="font-body-sm text-[12px] text-secondary">tingkat pelunasan hari ini</span>
             </div>
           </div>
           <div className="h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
-            <div className="h-full bg-teal-accent rounded-full" style={{ width: '91.7%' }}></div>
+            <div className="h-full bg-teal-accent rounded-full" style={{ width: `${totalPenjualan > 0 ? Math.round((lunasTerbayar/totalPenjualan)*100) : 0}%` }}></div>
           </div>
         </div>
 
@@ -358,17 +293,17 @@ export default function TransaksiPenjualanPage() {
             </span>
           </div>
           <div>
-            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">Rp 1.230.000</div>
+            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">{formatRp(kasbonPiutang)}</div>
             <div className="flex items-center gap-2 mt-1">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-warning-bg text-status-warning font-label-sm text-[11px] font-semibold">
                 <span className="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
-                5 Tagihan
+                {countTempo} Tagihan
               </span>
               <span className="font-body-sm text-[12px] text-secondary">jatuh tempo s/d 7 hari</span>
             </div>
           </div>
           <div className="h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
-            <div className="h-full bg-status-warning rounded-full" style={{ width: '24%' }}></div>
+            <div className="h-full bg-status-warning rounded-full" style={{ width: `${totalPenjualan > 0 ? Math.round((kasbonPiutang/totalPenjualan)*100) : 0}%` }}></div>
           </div>
         </div>
 
@@ -380,17 +315,17 @@ export default function TransaksiPenjualanPage() {
             </span>
           </div>
           <div>
-            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">Rp 104.500</div>
+            <div className="font-price-display text-[32px] leading-[40px] font-extrabold text-on-surface tracking-tight">{formatRp(aov)}</div>
             <div className="flex items-center gap-2 mt-1">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-status-success-bg text-status-success font-label-sm text-[11px] font-semibold">
                 <span className="material-symbols-outlined text-xs">arrow_upward</span>
-                +4.2%
+                +0%
               </span>
               <span className="font-body-sm text-[12px] text-secondary">rata-rata per meja / struk</span>
             </div>
           </div>
           <div className="h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
-            <div className="h-full bg-secondary rounded-full" style={{ width: '65%' }}></div>
+            <div className="h-full bg-secondary rounded-full" style={{ width: '50%' }}></div>
           </div>
         </div>
       </section>

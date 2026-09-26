@@ -162,7 +162,7 @@ export default function PengaturanTokoPage() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-md text-label-md text-on-surface">Email Operasional Toko</label>
-                <input type="email" defaultValue="toko.berkah@smartbook.id" className="px-3.5 py-2.5 rounded-xl bg-surface-card border border-border-subtle text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary-container shadow-sm" />
+                <input type="email" defaultValue="toko.anda@smartbook.id" className="px-3.5 py-2.5 rounded-xl bg-surface-card border border-border-subtle text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary-container shadow-sm" />
               </div>
               <div className="flex flex-col gap-1.5 md:col-span-2">
                 <label className="font-label-md text-label-md text-on-surface">Nomor WhatsApp Resmi Pelanggan</label>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/useOrgStore";
 
 // ─── TYPES ──────────────────────────────────────────
 type Category = "semua" | "kopi" | "makanan" | "dessert" | "bahan";
@@ -27,8 +28,32 @@ type CartItem = {
   variants: string[];
 };
 
+type Draft = {
+  id: string;
+  cart: CartItem[];
+  customerName: string;
+  orderType: OrderType;
+  selectedPromo: Promo;
+  subtotal: number;
+  timestamp: number;
+};
+
+type Promo = {
+  id: string;
+  name: string;
+  type: "nominal" | "percentage";
+  value: number;
+};
+
+const promos: Promo[] = [
+  { id: "none", name: "Tanpa Diskon", type: "nominal", value: 0 },
+  { id: "promo1", name: "Promo Karyawan (10%)", type: "percentage", value: 10 },
+  { id: "promo2", name: "Diskon SENINHEMAT (Rp 10.000)", type: "nominal", value: 10000 },
+  { id: "promo3", name: "Potongan Harga (Rp 5.000)", type: "nominal", value: 5000 },
+];
+
 // ─── PRODUCT DATA ───────────────────────────────────
-const products: Product[] = [
+const INITIAL_PRODUCTS: Product[] = [
   {
     id: "p1", sku: "KOP-01", name: "Kopi Susu Aren", desc: "2 Varian Rasa", price: 22000, stock: 48, category: "kopi",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDKprwMr7rNM8aJbjV9EzaGKwdlGzEQ-EUGdX1WrlagN8AJHJoCPnW1cZSDUejXnfyCzU_Xbd5cgXccaKtpzbODZWKGpMlzWGIwSg2SzJVwTBmEVEyL3__rHK-eydFSwio_HjOuBr3cInc86jaCnQ5v-gJLYeDWSW-ocT99zVQBnP4avaZpAu4VyJP4olS01n71JORIABldAcl_akdU-GZck8axXxCjgNelzF7Eug0r82WNhyjYPM1h",
@@ -76,11 +101,8 @@ const formatRupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 // ─── COMPONENT ──────────────────────────────────────
 export default function KasirPOSPage() {
   // ── State ──
-  const [cart, setCart] = useState<CartItem[]>([
-    { product: products[0], qty: 2, notes: "", variants: ["Less Sugar", "Ice"] },
-    { product: products[1], qty: 1, notes: "", variants: ["Hangatkan / Warm"] },
-    { product: products[2], qty: 1, notes: "", variants: [] },
-  ]);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [activeCategory, setActiveCategory] = useState<Category>("semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -97,16 +119,47 @@ export default function KasirPOSPage() {
   const [customerName, setCustomerName] = useState("Walk-in Guest");
   const [successMsg, setSuccessMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [selectedPromo, setSelectedPromo] = useState<Promo>(promos[0]);
+  const [showPromoPicker, setShowPromoPicker] = useState(false);
   
+  const { currentOrg } = useOrgStore();
   const supabase = createClient();
+
+  useEffect(() => {
+    let orgId = currentOrg?.id || '11111111-1111-1111-1111-111111111111';
+    
+    const fetchProducts = async () => {
+      const { data, error } = await supabase.from('products').select('*').eq('org_id', orgId);
+      if (data && data.length > 0 && !error) {
+        setProducts(data);
+      }
+    };
+    
+    fetchProducts();
+    
+    const channel = supabase.channel('realtime:products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `org_id=eq.${orgId}` }, () => {
+        fetchProducts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentOrg, supabase]);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
   // ── Calculations ──
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
-  const discount = 10000; // mock promo
+  
+  const discount = selectedPromo.type === "percentage" 
+    ? Math.round(subtotal * (selectedPromo.value / 100))
+    : selectedPromo.value;
+
   const taxRate = 0.1;
-  const taxableAmount = subtotal - discount;
+  const taxableAmount = Math.max(0, subtotal - discount);
   const tax = Math.round(taxableAmount * taxRate);
   const grandTotal = taxableAmount + tax;
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -124,7 +177,15 @@ export default function KasirPOSPage() {
     setCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) {
+        if (existing.qty >= product.stock) {
+          setTimeout(() => alert(`Stok ${product.name} tidak mencukupi. Sisa stok: ${product.stock}`), 0);
+          return prev;
+        }
         return prev.map(i => i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      }
+      if (product.stock <= 0) {
+        setTimeout(() => alert(`Stok ${product.name} habis.`), 0);
+        return prev;
       }
       return [...prev, { product, qty: 1, notes: "", variants: [] }];
     });
@@ -134,7 +195,23 @@ export default function KasirPOSPage() {
     setCart(prev => prev.map(item => {
       if (item.product.id !== productId) return item;
       const newQty = item.qty + delta;
+      if (newQty > item.product.stock) {
+        setTimeout(() => alert(`Stok ${item.product.name} tidak mencukupi. Sisa stok: ${item.product.stock}`), 0);
+        return item;
+      }
       return newQty > 0 ? { ...item, qty: newQty } : item;
+    }).filter(item => item.qty > 0));
+  }, []);
+
+  const setDirectQty = useCallback((productId: string, qty: number) => {
+    if (qty < 0) return;
+    setCart(prev => prev.map(item => {
+      if (item.product.id !== productId) return item;
+      if (qty > item.product.stock) {
+        setTimeout(() => alert(`Stok ${item.product.name} tidak mencukupi. Sisa stok: ${item.product.stock}`), 0);
+        return { ...item, qty: item.product.stock };
+      }
+      return { ...item, qty };
     }).filter(item => item.qty > 0));
   }, []);
 
@@ -144,8 +221,42 @@ export default function KasirPOSPage() {
 
   const clearCart = useCallback(() => {
     setCart([]);
+    setSelectedPromo(promos[0]);
     setShowCancelConfirm(false);
     showSuccess("Pesanan dibatalkan");
+  }, []);
+
+  const handleSaveDraft = useCallback(() => {
+    if (cart.length === 0) return;
+    const newDraft: Draft = {
+      id: Date.now().toString(),
+      cart: [...cart],
+      customerName,
+      orderType,
+      selectedPromo,
+      subtotal,
+      timestamp: Date.now()
+    };
+    setDrafts(prev => [...prev, newDraft]);
+    setCart([]);
+    setCustomerName("Walk-in Guest");
+    setOrderType("dine-in");
+    setSelectedPromo(promos[0]);
+    showSuccess("Pesanan ditahan sebagai draft");
+  }, [cart, customerName, orderType, subtotal, selectedPromo]);
+
+  const handleLoadDraft = useCallback((draft: Draft) => {
+    setCart(draft.cart);
+    setCustomerName(draft.customerName);
+    setOrderType(draft.orderType);
+    setSelectedPromo(draft.selectedPromo || promos[0]);
+    setDrafts(prev => prev.filter(d => d.id !== draft.id));
+    setShowDraftPanel(false);
+    showSuccess("Draft dimuat");
+  }, []);
+
+  const handleDeleteDraft = useCallback((id: string) => {
+    setDrafts(prev => prev.filter(d => d.id !== id));
   }, []);
 
   const updateNote = useCallback((productId: string, note: string) => {
@@ -156,7 +267,32 @@ export default function KasirPOSPage() {
     setIsSubmitting(true);
     
     try {
+      // 1. Dapatkan referensi org_id dan cashier_id
+      let finalOrgId = currentOrg?.id;
+      let finalCashierId = null;
+
+      const cookies = document.cookie.split('; ').reduce((acc, current) => {
+        const [name, value] = current.split('=');
+        acc[name] = value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      if (cookies.cashier_mode === 'true') {
+        finalCashierId = cookies.cashier_id || null;
+        if (!finalOrgId && cookies.org_slug) {
+           const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', cookies.org_slug).single();
+           if (orgData) finalOrgId = orgData.id;
+        }
+      }
+
+      // Fallback ke dummy org_id jika tidak ketemu (demi mencegah error saat masa percobaan)
+      if (!finalOrgId) {
+        finalOrgId = '11111111-1111-1111-1111-111111111111';
+      }
+
       const transactionData = {
+        org_id: finalOrgId,
+        cashier_id: finalCashierId,
         customer_name: customerName,
         order_type: orderType,
         payment_method: paymentMethod,
@@ -180,9 +316,19 @@ export default function KasirPOSPage() {
 
       if (error) throw error;
 
+      // Deduct stock in DB
+      for (const item of cart) {
+        const { data: pData } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
+        if (pData) {
+          const newStock = Math.max(0, pData.stock - item.qty);
+          await supabase.from('products').update({ stock: newStock }).eq('id', item.product.id);
+        }
+      }
+
       setShowPayConfirm(false);
       setCart([]);
       setSelectedCash(null);
+      setSelectedPromo(promos[0]);
       showSuccess("Pembayaran berhasil disimpan ke database!");
     } catch (error: any) {
       console.error("Error saving transaction:", error);
@@ -190,7 +336,7 @@ export default function KasirPOSPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [cart, customerName, orderType, paymentMethod, subtotal, discount, tax, grandTotal, supabase]);
+  }, [cart, customerName, orderType, paymentMethod, subtotal, discount, tax, grandTotal, supabase, currentOrg]);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -215,7 +361,7 @@ export default function KasirPOSPage() {
       if (e.key === "F1") { e.preventDefault(); searchRef.current?.focus(); }
       if (e.key === "F2") { e.preventDefault(); setShowScanMode(s => !s); }
       if (e.key === "F9" && cart.length > 0) { e.preventDefault(); setShowPayConfirm(true); }
-      if (e.key === "Escape") { setShowPayConfirm(false); setShowCancelConfirm(false); setShowLaciConfirm(false); setShowDraftPanel(false); setShowCustomerPicker(false); setShowScanMode(false); setEditingNoteId(null); }
+      if (e.key === "Escape") { setShowPayConfirm(false); setShowCancelConfirm(false); setShowLaciConfirm(false); setShowDraftPanel(false); setShowCustomerPicker(false); setShowScanMode(false); setEditingNoteId(null); setShowPromoPicker(false); }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -287,19 +433,27 @@ export default function KasirPOSPage() {
             <button onClick={() => { setShowDraftPanel(!showDraftPanel); setShowCustomerPicker(false); }} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${showDraftPanel ? 'bg-status-warning text-white' : 'bg-status-warning-bg hover:bg-status-warning-bg/80 text-status-warning'}`} type="button">
               <span className="material-symbols-outlined text-sm">pause_circle</span>
               <span>Tahan Draft</span>
-              <span className="px-1.5 py-0.5 bg-status-warning text-white rounded-full text-[11px]">2</span>
+              <span className="px-1.5 py-0.5 bg-status-warning text-white rounded-full text-[11px]">{drafts.length}</span>
             </button>
             {showDraftPanel && (
-              <div className="absolute top-full right-0 mt-2 w-72 bg-surface-container-lowest rounded-2xl shadow-xl border border-border-subtle z-50 py-2">
+              <div className="absolute top-full right-0 mt-2 w-72 bg-surface-container-lowest rounded-2xl shadow-xl border border-border-subtle z-50 py-2 max-h-80 overflow-y-auto">
                 <p className="px-4 py-1.5 text-[10px] font-bold text-secondary uppercase tracking-wider">Draft Tersimpan</p>
-                <button className="w-full text-left px-4 py-3 hover:bg-surface-container transition-colors border-b border-border-subtle/30" type="button" onClick={() => { setShowDraftPanel(false); showSuccess("Draft dimuat"); }}>
-                  <p className="text-xs font-bold text-on-surface">Draft #1 — Walk-in</p>
-                  <p className="text-[11px] text-secondary mt-0.5">2 item • Rp 46.000 • 10 menit lalu</p>
-                </button>
-                <button className="w-full text-left px-4 py-3 hover:bg-surface-container transition-colors" type="button" onClick={() => { setShowDraftPanel(false); showSuccess("Draft dimuat"); }}>
-                  <p className="text-xs font-bold text-on-surface">Draft #2 — Ahmad Rizky</p>
-                  <p className="text-[11px] text-secondary mt-0.5">3 item • Rp 78.000 • 25 menit lalu</p>
-                </button>
+                {drafts.length === 0 && <p className="px-4 py-3 text-xs text-secondary">Tidak ada draft tersimpan.</p>}
+                {drafts.map((draft, idx) => (
+                  <button key={draft.id} className="w-full text-left px-4 py-3 hover:bg-surface-container transition-colors border-b border-border-subtle/30" type="button" onClick={() => handleLoadDraft(draft)}>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-on-surface">Draft #{idx + 1} — {draft.customerName === "Walk-in Guest" ? "Walk-in" : draft.customerName}</p>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteDraft(draft.id); }} 
+                        className="text-secondary hover:text-status-danger p-1 rounded-full flex items-center justify-center"
+                        title="Hapus Draft"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-secondary mt-0.5">{draft.cart.reduce((s, i) => s + i.qty, 0)} item • {formatRupiah(draft.subtotal)} • {Math.round((Date.now() - draft.timestamp) / 60000)} menit lalu</p>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -395,7 +549,7 @@ export default function KasirPOSPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredProducts.map(product => {
                 const cartQty = getCartQty(product.id);
-                const sl = stockLabel(product.stock);
+                const sl = stockLabel(product.stock - cartQty);
                 return (
                   <div key={product.id} className="bg-surface-container-lowest rounded-2xl p-3.5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group relative cursor-pointer" onClick={() => addToCart(product)}>
                     <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-surface-container mb-3">
@@ -432,7 +586,7 @@ export default function KasirPOSPage() {
             <div className="flex flex-col gap-2">
               {filteredProducts.map(product => {
                 const cartQty = getCartQty(product.id);
-                const sl = stockLabel(product.stock);
+                const sl = stockLabel(product.stock - cartQty);
                 return (
                   <div key={product.id} className="bg-surface-container-lowest rounded-2xl p-3 shadow-sm hover:shadow-md transition-all flex items-center gap-4 cursor-pointer group" onClick={() => addToCart(product)}>
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-surface-container shrink-0">
@@ -531,7 +685,22 @@ export default function KasirPOSPage() {
                     </button>
                     <div className="flex items-center gap-2">
                       <button onClick={() => updateQty(item.product.id, -1)} className="w-6 h-6 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container flex items-center justify-center font-bold shadow-sm border border-border-subtle" type="button">-</button>
-                      <span className="text-sm font-bold tabular-nums text-on-surface w-5 text-center">{item.qty}</span>
+                      <input 
+                        type="number"
+                        min="1"
+                        max={item.product.stock}
+                        value={item.qty || ""}
+                        onChange={(e) => {
+                          if (e.target.value === "") {
+                            setDirectQty(item.product.id, 0);
+                            return;
+                          }
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val)) setDirectQty(item.product.id, val);
+                        }}
+                        className="w-8 text-sm font-bold tabular-nums text-on-surface bg-transparent text-center focus:outline-none border-b border-transparent focus:border-primary [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        style={{ MozAppearance: 'textfield' }}
+                      />
                       <button onClick={() => updateQty(item.product.id, 1)} className="w-6 h-6 rounded-lg bg-primary text-on-primary hover:bg-primary/90 flex items-center justify-center font-bold shadow-sm" type="button">+</button>
                       <button onClick={() => removeFromCart(item.product.id)} className="p-1 text-secondary hover:text-status-danger transition-colors ml-1" type="button">
                         <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -561,12 +730,36 @@ export default function KasirPOSPage() {
                     <span>Subtotal ({totalItems} item)</span>
                     <span className="text-sm font-semibold tabular-nums text-on-surface">{formatRupiah(subtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-status-success font-medium">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">sell</span>
-                      <span>Diskon Promo [SENINHEMAT]</span>
-                    </span>
-                    <span className="text-sm font-bold tabular-nums">- {formatRupiah(discount)}</span>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowPromoPicker(!showPromoPicker)} 
+                      className={`w-full flex justify-between items-center text-xs font-medium hover:bg-surface-container p-1 -mx-1 rounded transition-colors ${selectedPromo.id === "none" ? "text-secondary" : "text-status-success"}`} 
+                      type="button"
+                    >
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">sell</span>
+                        <span>{selectedPromo.id === "none" ? "Tambah Diskon" : selectedPromo.name}</span>
+                        <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+                      </span>
+                      {selectedPromo.id !== "none" && <span className="text-sm font-bold tabular-nums">- {formatRupiah(discount)}</span>}
+                    </button>
+                    {showPromoPicker && (
+                      <div className="absolute right-0 bottom-full mb-1 w-64 bg-surface-container-lowest border border-border-subtle rounded-xl shadow-xl z-50 overflow-hidden">
+                        <p className="px-3 py-2 text-[10px] font-bold text-secondary uppercase bg-surface-container-low border-b border-border-subtle">Pilih Diskon</p>
+                        <div className="max-h-48 overflow-y-auto">
+                          {promos.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => { setSelectedPromo(p); setShowPromoPicker(false); }}
+                              className={`w-full text-left px-3 py-2 text-xs hover:bg-surface-container transition-colors ${selectedPromo.id === p.id ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                              type="button"
+                            >
+                              {p.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-between text-xs text-secondary">
                     <span>Pajak Resto PB1 (10%)</span>
@@ -631,7 +824,7 @@ export default function KasirPOSPage() {
                     <span className="px-2 py-1 rounded-lg bg-on-primary/20 text-[12px] font-mono shadow-inner">F9</span>
                   </button>
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => { showSuccess("Pesanan ditahan sebagai draft"); }} className="py-3 rounded-xl bg-surface-container-lowest border border-border-subtle hover:bg-surface-container text-on-surface text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm" type="button">
+                    <button onClick={handleSaveDraft} className="py-3 rounded-xl bg-surface-container-lowest border border-border-subtle hover:bg-surface-container text-on-surface text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm" type="button">
                       <span className="material-symbols-outlined text-[18px] text-secondary">bookmark_border</span>
                       <span>Tahan / Simpan</span>
                     </button>

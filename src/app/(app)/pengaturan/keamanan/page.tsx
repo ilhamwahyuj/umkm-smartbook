@@ -196,7 +196,7 @@ export default function KeamananPage() {
       icon: "smartphone",
       badge: "iPhone 13",
       badgeColor: "bg-surface-container-low text-secondary",
-      location: "WiFi Toko Berkah 5G",
+      location: "WiFi Toko Anda 5G",
       detail: "Smartbook Waiter App",
       status: "Aktif 12 menit lalu",
       statusColor: "text-secondary",

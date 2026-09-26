@@ -23,7 +23,7 @@ export default function LoginPage() {
   }, [clearOrg]);
 
   // New states for form functionality
-  const [orgId, setOrgId] = useState("toko.berkah");
+  const [orgId, setOrgId] = useState("toko.anda");
   const [pin, setPin] = useState("");
   const [branch, setBranch] = useState("Cabang Utama (Senopati, Jakarta Selatan)");
   const [rememberMe, setRememberMe] = useState(true);
@@ -51,13 +51,42 @@ export default function LoginPage() {
           return;
         }
       } else {
-        // Mode Kasir Login Logic (Mock)
+        // Mode Kasir Login Logic (Supabase)
         if (pin.length !== 6) {
           setError("PIN harus 6 digit.");
           return;
         }
-        // Simulasikan login kasir berhasil
-        document.cookie = "cashier_mode=true; path=/; max-age=86400; SameSite=Lax";
+
+        // 1. Cek ID Organisasi / Gerai
+        const { data: orgData, error: orgError } = await supabase
+          .from("organizations")
+          .select("id")
+          .eq("slug", orgId)
+          .single();
+
+        if (orgError || !orgData) {
+          setError("ID Organisasi / Gerai tidak ditemukan.");
+          return;
+        }
+
+        // 2. Cek kecocokan PIN untuk kasir di cabang tersebut
+        const { data: cashierData, error: cashierError } = await supabase
+          .from("cashiers")
+          .select("*")
+          .eq("org_id", orgData.id)
+          .eq("pin", pin)
+          .eq("branch_name", branch)
+          .single();
+
+        if (cashierError || !cashierData) {
+          setError("PIN kasir atau Cabang salah.");
+          return;
+        }
+
+        // Login kasir berhasil
+        document.cookie = `cashier_mode=true; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `cashier_id=${cashierData.id}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `org_slug=${orgId}; path=/; max-age=86400; SameSite=Lax`;
       }
 
       router.push("/dashboard");
@@ -191,7 +220,7 @@ export default function LoginPage() {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold tracking-wider uppercase text-slate-400">Pilih Mode Masuk</span>
-                <span className="text-xs text-teal-700 font-semibold bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/60">Toko: Berkah Group</span>
+                <span className="text-xs text-teal-700 font-semibold bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/60">Toko: Anda Group</span>
               </div>
               
               <div className="grid grid-cols-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80">
@@ -249,7 +278,7 @@ export default function LoginPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                   <span>ID Organisasi / Gerai</span>
-                  <span className="text-[11px] font-medium text-teal-700 lowercase">contoh: toko.berkah</span>
+                  <span className="text-[11px] font-medium text-teal-700 lowercase">contoh: toko.anda</span>
                 </label>
                 <div className="relative rounded-xl border border-slate-300 focus-within:border-teal-700 focus-within:ring-2 focus-within:ring-teal-700/20 bg-slate-50/50 transition-all">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
