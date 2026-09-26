@@ -5,15 +5,15 @@ import Link from "next/link";
 import {
   Plus,
   Search,
-  Filter,
   Package,
   Edit,
   Trash2,
   MoreVertical,
   Barcode,
+  Loader2,
 } from "lucide-react";
 import { cn, formatRupiah, getStockStatus } from "@/lib/utils";
-import { mockProducts } from "@/lib/mock-data";
+import { useGetProducts, useDeleteProduct } from "@/hooks/api/useProducts";
 import type { Product } from "@/types/database";
 
 type StockFilter = "semua" | "aman" | "menipis" | "habis";
@@ -23,26 +23,13 @@ export default function ProdukPage() {
   const [stockFilter, setStockFilter] = useState<StockFilter>("semua");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  const filtered = mockProducts.filter((p) => {
-    const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku?.toLowerCase() ?? "").includes(search.toLowerCase()) ||
-      (p.barcode?.toLowerCase() ?? "").includes(search.toLowerCase());
-
-    const status = getStockStatus(p.stock, p.min_stock);
-    const matchStock =
-      stockFilter === "semua" ||
-      (stockFilter === "aman" && status === "aman") ||
-      (stockFilter === "menipis" && status === "menipis") ||
-      (stockFilter === "habis" && status === "habis");
-
-    return matchSearch && matchStock;
-  });
+  const { data: products = [], isLoading } = useGetProducts({ search, stockFilter });
+  const deleteProduct = useDeleteProduct();
 
   const stockCounts = {
-    aman: mockProducts.filter((p) => getStockStatus(p.stock, p.min_stock) === "aman").length,
-    menipis: mockProducts.filter((p) => getStockStatus(p.stock, p.min_stock) === "menipis").length,
-    habis: mockProducts.filter((p) => getStockStatus(p.stock, p.min_stock) === "habis").length,
+    aman: products.filter((p) => getStockStatus(p.stock, p.min_stock) === "aman").length,
+    menipis: products.filter((p) => getStockStatus(p.stock, p.min_stock) === "menipis").length,
+    habis: products.filter((p) => getStockStatus(p.stock, p.min_stock) === "habis").length,
   };
 
   return (
@@ -52,7 +39,7 @@ export default function ProdukPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Produk</h1>
           <p className="text-slate-500 text-sm mt-0.5">
-            {mockProducts.length} produk terdaftar
+            {products.length} produk terdaftar
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -66,7 +53,7 @@ export default function ProdukPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Total Produk", value: mockProducts.length, color: "text-slate-800", bg: "bg-slate-50" },
+          { label: "Total Produk", value: products.length, color: "text-slate-800", bg: "bg-slate-50" },
           { label: "Stok Aman", value: stockCounts.aman, color: "text-emerald-700", bg: "bg-emerald-50" },
           { label: "Stok Menipis", value: stockCounts.menipis, color: "text-amber-700", bg: "bg-amber-50" },
           { label: "Stok Habis", value: stockCounts.habis, color: "text-rose-700", bg: "bg-rose-50" },
@@ -120,7 +107,12 @@ export default function ProdukPage() {
 
       {/* Product Table */}
       <div className="card overflow-hidden">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            <span className="ml-2 text-slate-500 text-sm">Memuat data produk...</span>
+          </div>
+        ) : products.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">
               <Package className="w-8 h-8" />
@@ -151,7 +143,7 @@ export default function ProdukPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((product) => {
+                {products.map((product) => {
                   const status = getStockStatus(product.stock, product.min_stock);
                   return (
                     <tr key={product.id}>
@@ -227,7 +219,15 @@ export default function ProdukPage() {
                                 <Link href={`/produk/${product.id}/edit`} onClick={() => setOpenMenu(null)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 text-slate-700">
                                   <Edit className="w-3.5 h-3.5" /> Edit
                                 </Link>
-                                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-rose-50 text-rose-600">
+                                <button
+                                  onClick={() => {
+                                    if (confirm("Hapus produk ini?")) {
+                                      deleteProduct.mutate(product.id);
+                                    }
+                                    setOpenMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-rose-50 text-rose-600"
+                                >
                                   <Trash2 className="w-3.5 h-3.5" /> Hapus
                                 </button>
                               </div>

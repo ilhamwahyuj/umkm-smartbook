@@ -21,7 +21,9 @@ import {
 } from "lucide-react";
 import { cn, formatRupiah } from "@/lib/utils";
 import { usePurchaseStore } from "@/stores/usePurchaseStore";
-import { mockProducts, mockSuppliers } from "@/lib/mock-data";
+import { useGetProducts } from "@/hooks/api/useProducts";
+import { useGetSuppliers } from "@/hooks/api/useSuppliers";
+import { useCreatePurchase } from "@/hooks/api/usePurchase";
 
 type PaymentMethodKey = "transfer" | "cash" | "credit";
 
@@ -47,17 +49,13 @@ export default function PembelianBaruPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const filteredProducts = mockProducts.filter((p) =>
-    p.is_active && !p.is_service &&
-    (p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-     (p.sku?.toLowerCase() ?? "").includes(productSearch.toLowerCase()) ||
-     (p.barcode ?? "").includes(productSearch))
-  );
+  const { data: allProducts = [] } = useGetProducts({ search: productSearch });
+  const { data: allSuppliersList = [] } = useGetSuppliers(supplierSearch);
+  const createPurchase = useCreatePurchase();
 
-  const filteredSuppliers = mockSuppliers.filter((s) =>
-    s.name.toLowerCase().includes(supplierSearch.toLowerCase()) ||
-    (s.contact_name ?? "").toLowerCase().includes(supplierSearch.toLowerCase())
-  );
+  const filteredProducts = allProducts.filter((p) => p.is_active && !p.is_service);
+
+  const filteredSuppliers = allSuppliersList;
 
   const isHutang = payment_method === "credit";
   const numPaidAmount = isHutang ? (Number(paidAmount.replace(/\D/g, "")) || 0) : grandTotal();
@@ -71,12 +69,32 @@ export default function PembelianBaruPage() {
 
     setLoading(true);
 
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200));
-
-    const poNum = `PO-${new Date().toISOString().replace(/\D/g, "").slice(0, 8)}-${Math.floor(Math.random() * 9000) + 1000}`;
-    setSuccess(poNum);
-    setLoading(false);
+    try {
+      const result = await createPurchase.mutateAsync({
+        items: items.map((item) => ({
+          product_id: item.product.id,
+          variant_id: item.variant?.id,
+          product_name: item.product.name,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+        })),
+        supplier_id: supplier?.id,
+        subtotal: subtotal(),
+        discount_amount: discount_amount,
+        tax_amount: tax_amount,
+        total: grandTotal(),
+        paid_amount: isHutang ? numPaidAmount : grandTotal(),
+        payment_method,
+        payment_status: isHutang ? (numPaidAmount > 0 ? "partial" : "unpaid") : "paid",
+        notes: undefined,
+      });
+      setSuccess(result.purchase_number);
+    } catch (err: any) {
+      alert("Gagal menyimpan pembelian: " + (err.message || "Unknown error"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleNewTransaction = () => {

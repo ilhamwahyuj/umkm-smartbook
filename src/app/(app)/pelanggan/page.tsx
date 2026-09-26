@@ -2,26 +2,23 @@
 // src/app/(app)/pelanggan/page.tsx
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Users, Phone, CreditCard } from "lucide-react";
+import { Plus, Search, Users, Phone, CreditCard, Loader2 } from "lucide-react";
 import { cn, formatRupiah, formatDate } from "@/lib/utils";
-import { mockCustomers } from "@/lib/mock-data";
+import { useGetCustomers } from "@/hooks/api/useCustomers";
 
 export default function PelangganPage() {
   const [search, setSearch] = useState("");
 
-  const filtered = mockCustomers.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone ?? "").includes(search)
-  );
+  const { data: customers = [], isLoading } = useGetCustomers(search);
 
-  const totalReceivable = mockCustomers.reduce((sum, c) => sum + c.receivable_amount, 0);
+  const totalReceivable = customers.reduce((sum, c) => sum + c.receivable_amount, 0);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Pelanggan</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{mockCustomers.length} pelanggan terdaftar</p>
+          <p className="text-slate-500 text-sm mt-0.5">{customers.length} pelanggan terdaftar</p>
         </div>
         <Link href="/pelanggan/tambah" className="btn btn-primary w-fit">
           <Plus className="w-4 h-4" /> Tambah Pelanggan
@@ -32,7 +29,7 @@ export default function PelangganPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="card p-4">
           <p className="text-slate-500 text-xs font-medium">Total Pelanggan</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{mockCustomers.length}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{customers.length}</p>
         </div>
         <div className="card p-4">
           <p className="text-slate-500 text-xs font-medium">Total Piutang</p>
@@ -41,7 +38,7 @@ export default function PelangganPage() {
         <div className="card p-4">
           <p className="text-slate-500 text-xs font-medium">Pelanggan Aktif (30 hari)</p>
           <p className="text-2xl font-bold text-emerald-600 mt-1">
-            {mockCustomers.filter((c) => {
+            {customers.filter((c) => {
               if (!c.last_transaction_at) return false;
               const d = new Date(c.last_transaction_at);
               return Date.now() - d.getTime() < 30 * 24 * 60 * 60 * 1000;
@@ -64,7 +61,12 @@ export default function PelangganPage() {
       </div>
 
       {/* Customer Cards */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          <span className="ml-2 text-slate-500 text-sm">Memuat data pelanggan...</span>
+        </div>
+      ) : customers.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <div className="empty-state-icon">
@@ -79,7 +81,7 @@ export default function PelangganPage() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((customer) => (
+          {customers.map((customer) => (
             <Link
               key={customer.id}
               href={`/pelanggan/${customer.id}`}

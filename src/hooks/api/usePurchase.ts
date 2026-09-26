@@ -1,3 +1,4 @@
+// src/hooks/api/usePurchase.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useOrgStore } from "@/stores/useOrgStore";
@@ -75,20 +76,13 @@ export function useGetPurchaseMetrics() {
         .filter(p => ["unpaid", "partial", "overdue"].includes(p.payment_status))
         .reduce((sum, p) => sum + (Number(p.total) - Number(p.paid_amount)), 0);
 
-      const { data: lowStockProducts } = await supabase
+      // Get low stock products
+      const { data: allProds } = await supabase
         .from("products")
         .select("*")
-        .eq("organization_id", currentOrg.id)
-        .lt("stock", "min_stock"); // Not valid PostgREST if we compare columns, but let's assume we do this client-side
-
-      // Fallback if the lt("stock", "min_stock") fails due to column comparison
-      let lowStocks = lowStockProducts || [];
-      if (lowStocks.length === 0) {
-        const { data: allProds } = await supabase.from("products").select("*").eq("organization_id", currentOrg.id);
-        if (allProds) {
-            lowStocks = allProds.filter(p => p.stock < p.min_stock);
-        }
-      }
+        .eq("organization_id", currentOrg.id);
+      
+      const lowStocks = (allProds || []).filter(p => p.stock < p.min_stock);
 
       return {
         totalPembelian,
@@ -167,5 +161,136 @@ export function useGetRecentStockMovements() {
       return data as (StockMovement & { product?: { name: string, sku: string } })[];
     },
     enabled: !!currentOrg?.id,
+  });
+}
+
+interface PurchaseCheckoutPayload {
+  items: {
+    product_id: string;
+    variant_id?: string;
+    product_name: string;
+    qty: number;
+    unit_price: number;
+    subtotal: number;
+  }[];
+  supplier_id?: string;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  total: number;
+  paid_amount: number;
+  payment_method: string;
+  payment_status: string;
+  notes?: string;
+}
+
+export function useCreatePurchase() {
+  const queryClient = useQueryClient();
+  const currentOrg = useOrgStore((s) => s.currentOrg);
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async (payload: PurchaseCheckoutPayload) => {
+      if (!currentOrg?.id) throw new Error("No organization");
+
+      const poNumber = `PO-${new Date()
+        .toISOString()
+        .replace(/\D/g, "")
+        .slice(0, 8)}-${Math.floor(Math.random() * 9000) + 1000}`;
+
+      // 1. Insert purchase header
+      const { data: purchase, error: purchaseError } = await supabase
+        .from("purchases")
+        .insert({
+          organization_id: currentOrg.id,
+          purchase_number: poNumber,
+          supplier_id: payload.supplier_id || null,
+          purchase_date: new Date().toISOString().split("T")[0],
+          subtotal: payload.subtotal,
+          discount_amount: payload.discount_amount,
+          tax_amount: payload.tax_amount,
+          total: payload.total,
+          paid_amount: payload.paid_amount,
+          payment_method: payload.payment_method,
+          payment_status: payload.payment_status,
+          notes: payload.notes || null,
+        })
+        .select()
+        .single();
+
+      if (purchaseError) throw purchaseError;
+
+      // 2. Insert purchase items
+      const purchaseItems = payload.items.map((item) => ({
+        purchase_id: purchase.id,
+        product_id: item.product_id,
+        variant_id: item.variant_id || null,
+        product_name: item.product_name,
+        qty: item.qty,
+        unit_price: item.unit_price,
+        subtotal: item.subtotal,
+      }));
+
+      const { error: itemsError } = await supabase.from("purchase_items").insert(purchaseItems);
+      if (itemsError) throw itemsError;
+
+      // 3. Update product stock & record stock movements (increase stock)
+      for (const item of payload.items) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock")
+          .eq("id", item.product_id)
+          .single();
+
+        const qtyBefore = product?.stock || 0;
+        const qtyAfter = qtyBefore + item.qty;
+
+        await supabase
+          .from("products")
+          .update({ stock: qtyAfter, updated_at: new Date().toISOString() })
+          .eq("id", item.product_id);
+
+        await supabase.from("stock_movements").insert({
+          organization_id: currentOrg.id,
+          product_id: item.product_id,
+          variant_id: item.variant_id || null,
+          type: "purchase",
+          reference_type: "purchase",
+          reference_id: purchase.id,
+          qty_change: item.qty,
+          qty_before: qtyBefore,
+          qty_after: qtyAfter,
+          notes: `Pembelian ${poNumber}`,
+        });
+      }
+
+      // 4. If credit, create payable
+      if (payload.payment_method === "credit" && payload.supplier_id) {
+        const remaining = payload.total - payload.paid_amount;
+        if (remaining > 0) {
+          await supabase.from("payables").insert({
+            organization_id: currentOrg.id,
+            supplier_id: payload.supplier_id,
+            purchase_id: purchase.id,
+            purchase_number: poNumber,
+            total_amount: payload.total,
+            paid_amount: payload.paid_amount,
+            remaining_amount: remaining,
+            status: payload.paid_amount > 0 ? "partial" : "unpaid",
+            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+          });
+        }
+      }
+
+      return { ...purchase, purchase_number: poNumber };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["purchase_metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["stock_movements_recent"] });
+      queryClient.invalidateQueries({ queryKey: ["payables"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+    },
   });
 }

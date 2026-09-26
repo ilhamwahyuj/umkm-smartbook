@@ -6,6 +6,7 @@ import { Topbar } from "./Topbar";
 import { MobileNav } from "./MobileNav";
 import { createClient } from "@/lib/supabase/client";
 import { useOrgStore } from "@/stores/useOrgStore";
+import { useSupabaseRealtime } from "@/hooks/api/useRealtime";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -15,6 +16,9 @@ export function AppShell({ children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const setCurrentOrg = useOrgStore(state => state.setCurrentOrg);
   const currentOrg = useOrgStore(state => state.currentOrg);
+
+  // Enable global realtime sync — auto-refreshes UI on any DB change
+  useSupabaseRealtime();
 
   useEffect(() => {
     async function init() {

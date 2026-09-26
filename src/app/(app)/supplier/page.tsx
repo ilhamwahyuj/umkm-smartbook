@@ -2,27 +2,23 @@
 // src/app/(app)/supplier/page.tsx
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Truck, Phone, CreditCard, Building2 } from "lucide-react";
+import { Plus, Search, Truck, Phone, CreditCard, Building2, Loader2 } from "lucide-react";
 import { formatRupiah, formatDate } from "@/lib/utils";
-import { mockSuppliers } from "@/lib/mock-data";
+import { useGetSuppliers } from "@/hooks/api/useSuppliers";
 
 export default function SupplierPage() {
   const [search, setSearch] = useState("");
 
-  const filtered = mockSuppliers.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.contact_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (s.phone ?? "").includes(search)
-  );
+  const { data: suppliers = [], isLoading } = useGetSuppliers(search);
 
-  const totalPayable = mockSuppliers.reduce((sum, s) => sum + s.payable_amount, 0);
+  const totalPayable = suppliers.reduce((sum, s) => sum + s.payable_amount, 0);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Supplier</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{mockSuppliers.length} supplier terdaftar</p>
+          <p className="text-slate-500 text-sm mt-0.5">{suppliers.length} supplier terdaftar</p>
         </div>
         <Link href="/supplier/tambah" className="btn btn-primary w-fit">
           <Plus className="w-4 h-4" /> Tambah Supplier
@@ -33,7 +29,7 @@ export default function SupplierPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="card p-4">
           <p className="text-slate-500 text-xs font-medium">Total Supplier</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{mockSuppliers.length}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{suppliers.length}</p>
         </div>
         <div className="card p-4">
           <p className="text-slate-500 text-xs font-medium">Total Hutang</p>
@@ -42,7 +38,7 @@ export default function SupplierPage() {
         <div className="card p-4">
           <p className="text-slate-500 text-xs font-medium">Supplier Aktif</p>
           <p className="text-2xl font-bold text-emerald-600 mt-1">
-            {mockSuppliers.filter((s) => s.is_active).length}
+            {suppliers.filter((s) => s.is_active).length}
           </p>
         </div>
       </div>
@@ -61,7 +57,12 @@ export default function SupplierPage() {
       </div>
 
       {/* Supplier Cards */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          <span className="ml-2 text-slate-500 text-sm">Memuat data supplier...</span>
+        </div>
+      ) : suppliers.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <div className="empty-state-icon bg-indigo-50 text-indigo-500">
@@ -76,7 +77,7 @@ export default function SupplierPage() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((supplier) => (
+          {suppliers.map((supplier) => (
             <Link
               key={supplier.id}
               href={`/supplier/${supplier.id}`}

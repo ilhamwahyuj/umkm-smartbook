@@ -1,174 +1,448 @@
 -- ==============================================================================
--- UMKM SmartBook - Supabase Database Schema
+-- UMKM SmartBook - Supabase Database Schema (FULL)
+-- Berdasarkan data-design.md
+-- ==============================================================================
+-- PERINGATAN: Script ini akan DROP tabel lama! Jalankan hanya di database baru/fresh.
 -- ==============================================================================
 
--- PERHATIAN: Baris berikut akan menghapus tabel lama jika sudah ada (berguna saat pengujian).
--- Hapus (atau comment) baris DROP TABLE di bawah jika Anda tidak ingin menghapus data sebelumnya.
-DROP TABLE IF EXISTS public.transactions CASCADE;
+-- Drop existing tables in reverse dependency order
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.stock_movements CASCADE;
+DROP TABLE IF EXISTS public.sale_items CASCADE;
+DROP TABLE IF EXISTS public.purchase_items CASCADE;
+DROP TABLE IF EXISTS public.receivables CASCADE;
+DROP TABLE IF EXISTS public.payables CASCADE;
+DROP TABLE IF EXISTS public.expenses CASCADE;
+DROP TABLE IF EXISTS public.expense_categories CASCADE;
+DROP TABLE IF EXISTS public.sales CASCADE;
+DROP TABLE IF EXISTS public.purchases CASCADE;
+DROP TABLE IF EXISTS public.product_variants CASCADE;
 DROP TABLE IF EXISTS public.products CASCADE;
-DROP TABLE IF EXISTS public.cashiers CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
+DROP TABLE IF EXISTS public.units CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.customers CASCADE;
+DROP TABLE IF EXISTS public.suppliers CASCADE;
+DROP TABLE IF EXISTS public.organization_members CASCADE;
 DROP TABLE IF EXISTS public.organizations CASCADE;
 
--- 1. Tabel Organizations (Gerai/Toko)
+-- Drop old tables from previous schema if they exist
+DROP TABLE IF EXISTS public.transactions CASCADE;
+DROP TABLE IF EXISTS public.cashiers CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+-- ==============================================================================
+-- 1. ORGANIZATIONS
+-- ==============================================================================
 CREATE TABLE public.organizations (
-    id UUID DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
-    slug TEXT NOT NULL UNIQUE, -- contoh: 'toko.anda'
-    name TEXT NOT NULL,        -- contoh: 'Toko Anda Group'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- Mengaktifkan RLS (Row Level Security)
-ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
-
--- Policy: Semua orang (bahkan anon) boleh melihat nama gerai berdasarkan slug (untuk login)
-CREATE POLICY "Allow public read access for login" 
-ON public.organizations FOR SELECT 
-USING (true);
-
-
--- 2. Tabel Profiles (Pemilik/Manajer yang tersambung ke Auth Users Supabase)
-CREATE TABLE public.profiles (
-    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-    org_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
-    role TEXT NOT NULL DEFAULT 'owner',
-    full_name TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- Mengaktifkan RLS
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- Policy: Pengguna yang sudah login hanya bisa melihat data profilnya sendiri
-CREATE POLICY "Users can view own profile" 
-ON public.profiles FOR SELECT 
-USING (auth.uid() = id);
-
--- Trigger untuk membuat profil secara otomatis ketika user mendaftar bisa ditambahkan di sini (Opsional)
-
-
--- 3. Tabel Cashiers (Data PIN Kasir per Cabang)
-CREATE TABLE public.cashiers (
-    id UUID DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
-    org_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
-    branch_name TEXT NOT NULL, -- contoh: 'Cabang Utama (Senopati, Jakarta Selatan)'
-    name TEXT NOT NULL,        -- contoh: 'Kasir 1'
-    pin VARCHAR(6) NOT NULL,   -- PIN 6 digit
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- Mengaktifkan RLS
-ALTER TABLE public.cashiers ENABLE ROW LEVEL SECURITY;
-
--- Policy: 
--- A. Pemilik bisa melihat semua kasir di organisasinya (Jika pakai JWT Supabase biasa)
-CREATE POLICY "Owner can read own organization cashiers" 
-ON public.cashiers FOR SELECT 
-USING (
-    org_id IN (
-        SELECT org_id FROM public.profiles WHERE id = auth.uid()
-    )
-);
-
--- B. Publik (anon) boleh mencocokkan PIN untuk login kasir (Secara logika login kasir terjadi sebelum autentikasi JWT penuh)
--- PENTING: Di Supabase, jika login kasir tidak pakai `auth.users`, kita buka akses SELECT ini secara anonim, ATAU Anda bisa memindahkannya ke Edge Function/RPC (Stored Procedure).
--- Agar lebih simpel dan jalan dengan kode di frontend:
-CREATE POLICY "Allow anon to verify PIN for login"
-ON public.cashiers FOR SELECT
-USING (true);
-
-
--- 4. Tabel Transactions (Transaksi Penjualan)
-CREATE TABLE public.transactions (
-    id UUID DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
-    org_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
-    cashier_id UUID REFERENCES public.cashiers(id) ON DELETE SET NULL,
-    customer_name TEXT,
-    order_type TEXT NOT NULL,
-    payment_method TEXT NOT NULL,
-    subtotal NUMERIC NOT NULL DEFAULT 0,
-    discount NUMERIC NOT NULL DEFAULT 0,
-    tax NUMERIC NOT NULL DEFAULT 0,
-    grand_total NUMERIC NOT NULL DEFAULT 0,
-    items JSONB NOT NULL DEFAULT '[]'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- Mengaktifkan RLS
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-
--- Policy: Pemilik bisa melihat semua transaksi di gerainya
-CREATE POLICY "Owner can view their transactions" 
-ON public.transactions FOR SELECT 
-USING (true); -- Dibuka sementara agar kasir (anon) bisa melakukan INSERT RETURNING dengan sukses
-
--- Policy: Insert transaksi (Buka ke anon dan authenticated karena kasir menggunakan PIN)
-CREATE POLICY "Allow insert transactions" 
-ON public.transactions FOR INSERT 
-TO public
-WITH CHECK (true);
-
--- Memberikan izin eksplisit ke peran anon dan authenticated (Penting jika tabel dibuat via SQL)
-GRANT ALL ON public.transactions TO anon, authenticated;
-
--- 5. Tabel Products (Menu / Barang)
-CREATE TABLE public.products (
-    id TEXT PRIMARY KEY,
-    org_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
-    sku TEXT NOT NULL,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
-    "desc" TEXT,
-    price NUMERIC NOT NULL DEFAULT 0,
-    stock INTEGER NOT NULL DEFAULT 0,
-    category TEXT NOT NULL,
-    image TEXT
+    type TEXT NOT NULL DEFAULT 'general',
+    currency TEXT NOT NULL DEFAULT 'IDR',
+    logo_url TEXT,
+    address TEXT,
+    phone TEXT,
+    email TEXT,
+    tax_number TEXT,
+    website TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- Mengaktifkan RLS
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to organizations" ON public.organizations FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.organizations TO anon, authenticated;
+
+-- ==============================================================================
+-- 2. ORGANIZATION MEMBERS
+-- ==============================================================================
+CREATE TABLE public.organization_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'owner',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    invited_at TIMESTAMPTZ DEFAULT now(),
+    joined_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to organization_members" ON public.organization_members FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.organization_members TO anon, authenticated;
+
+-- ==============================================================================
+-- 3. CATEGORIES
+-- ==============================================================================
+CREATE TABLE public.categories (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'product', -- 'product' or 'expense'
+    color TEXT,
+    icon TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to categories" ON public.categories FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.categories TO anon, authenticated;
+
+-- ==============================================================================
+-- 4. UNITS
+-- ==============================================================================
+CREATE TABLE public.units (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    abbreviation TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.units ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to units" ON public.units FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.units TO anon, authenticated;
+
+-- ==============================================================================
+-- 5. PRODUCTS
+-- ==============================================================================
+CREATE TABLE public.products (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+    unit_id UUID REFERENCES public.units(id) ON DELETE SET NULL,
+    sku TEXT,
+    barcode TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    image_url TEXT,
+    buy_price NUMERIC NOT NULL DEFAULT 0,
+    sell_price NUMERIC NOT NULL DEFAULT 0,
+    stock INTEGER NOT NULL DEFAULT 0,
+    min_stock INTEGER NOT NULL DEFAULT 0,
+    has_variants BOOLEAN NOT NULL DEFAULT false,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    is_service BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-
--- Policy: Semua orang (bahkan anon) boleh melihat produk untuk kasir
-CREATE POLICY "Allow anon read access to products" 
-ON public.products FOR SELECT 
-USING (true);
-
--- Policy: Anon boleh update stock setelah transaksi
-CREATE POLICY "Allow anon update products stock" 
-ON public.products FOR UPDATE
-TO public
-USING (true)
-WITH CHECK (true);
-
+CREATE POLICY "Allow all access to products" ON public.products FOR ALL USING (true) WITH CHECK (true);
 GRANT ALL ON public.products TO anon, authenticated;
 
+-- ==============================================================================
+-- 6. PRODUCT VARIANTS
+-- ==============================================================================
+CREATE TABLE public.product_variants (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    sku TEXT,
+    barcode TEXT,
+    buy_price NUMERIC NOT NULL DEFAULT 0,
+    sell_price NUMERIC NOT NULL DEFAULT 0,
+    stock INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.product_variants ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to product_variants" ON public.product_variants FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.product_variants TO anon, authenticated;
 
 -- ==============================================================================
--- DUMMY DATA SEEDING (Untuk Uji Coba)
+-- 7. CUSTOMERS
 -- ==============================================================================
+CREATE TABLE public.customers (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    notes TEXT,
+    total_transactions INTEGER NOT NULL DEFAULT 0,
+    total_spend NUMERIC NOT NULL DEFAULT 0,
+    receivable_amount NUMERIC NOT NULL DEFAULT 0,
+    last_transaction_at TIMESTAMPTZ,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
 
--- Masukkan organisasi dummy
-INSERT INTO public.organizations (id, slug, name)
-VALUES 
-    ('11111111-1111-1111-1111-111111111111', 'toko.anda', 'Toko Anda Group');
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to customers" ON public.customers FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.customers TO anon, authenticated;
 
--- Masukkan data kasir dummy untuk 'toko.anda' (PIN: 123456)
-INSERT INTO public.cashiers (org_id, branch_name, name, pin)
-VALUES 
-    ('11111111-1111-1111-1111-111111111111', 'Cabang Utama (Senopati, Jakarta Selatan)', 'Kasir Utama', '123456'),
-    ('11111111-1111-1111-1111-111111111111', 'Cabang Utama (Senopati, Jakarta Selatan)', 'Kasir Utama', '123456'),
-    ('11111111-1111-1111-1111-111111111111', 'Cabang 02 (Dago, Bandung)', 'Kasir Cabang', '123456');
+-- ==============================================================================
+-- 8. SUPPLIERS
+-- ==============================================================================
+CREATE TABLE public.suppliers (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    contact_name TEXT,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    notes TEXT,
+    total_purchases INTEGER NOT NULL DEFAULT 0,
+    total_spend NUMERIC NOT NULL DEFAULT 0,
+    payable_amount NUMERIC NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
 
--- Masukkan data produk dummy
-INSERT INTO public.products (id, org_id, sku, name, "desc", price, stock, category, image)
-VALUES 
-    ('p1', '11111111-1111-1111-1111-111111111111', 'KOP-01', 'Kopi Susu Aren', '2 Varian Rasa', 22000, 48, 'kopi', 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_iOaD4D6x-25q7K19Dk_fD7jD5_95t0n4bY8tK8O_28j5p2_0RjQkP9X1F_53n6C1fVq-E8jP9E5Q1F-kQxM_T0K9p3lHj1_nB6S5L8bX_u_C4kHqM8kC4fF3aPqR9aN_n5YVp9wR-g1Q6oD8N9tK0w4GqK7R9pL9gQ5YV4R5aB_X4qM9kP7fK9a_'),
-    ('p2', '11111111-1111-1111-1111-111111111111', 'PAS-04', 'Croissant Butter', 'Fresh Daily', 28000, 19, 'dessert', 'https://lh3.googleusercontent.com/aida-public/AB6AXuC5xUaxHBrUU2wNyBB2xy8yrYRENcjMuNeqbxkFYkeZHRMmSeTMrscX-vSMexV0vLEHo5Ciqze_85OyaiaSNE_ssmqd5EMje2KKwURMyBkNG6amf38sreqt5KhIBsf315IjpmR0orOLWJPTGjfOEKuCGFGag6u4DGS92okCjWYTJzpUSugExny6VptFT-O_nCKKWXH2v7D1eerlQBHhHera721iK4Mi4bBQJWdMGb0tblyWYwz5ETWf'),
-    ('p3', '11111111-1111-1111-1111-111111111111', 'MNU-09', 'Matcha Latte', 'Uji Grade A', 26000, 32, 'kopi', 'https://lh3.googleusercontent.com/aida-public/AB6AXuC8Mon_dEypws8015jfXnA4HPRWZ9Ur9bddW1Mbqzgew9axvog61XemHG-QB460Jq3kaw556c4m-uLOBb9uGnqBrVPLckSfEVYNYRP2T3pvJDh-6JK6pa9R2ROwOov_10f_04wPRQHudiuF--2U8yn3eXcTy5p7O94CLQszoYexGVPEWeqlKPRYAyDycUujbVEXfAGWpIyDZjC1Yz9u4KqR5dG7ZZEddyjrEB-vs11a3YZP9w8FoWLw'),
-    ('p4', '11111111-1111-1111-1111-111111111111', 'KOP-02', 'Americano Ice', 'Single Origin Flores', 18000, 4, 'kopi', 'https://lh3.googleusercontent.com/aida-public/AB6AXuBver_pfsinFeUmMUks3SCwPI3pokgPgQ5FMEVHGHKdlIbqFiskoTNIfAQnMU_aaO0NET3BFE0LAXzS7HdnE71HQaRJRfV-5mhue-DtB3WvQdmppFp2OT1LJWNhTLMvQ7yVv0MnrNLqOdozldCClL1_DT1HnwYPvHTcPZCHi_3R--sUpaiBhKGgHe-xbEZSnM56gqT3fQBM2Ui0NBaubCxzjL9qvxWZwpUNfhZZ6HdhyhPasRSoPrin'),
-    ('p5', '11111111-1111-1111-1111-111111111111', 'SNK-11', 'Toast Roti Bakar', 'Choco Melt', 20000, 25, 'makanan', 'https://lh3.googleusercontent.com/aida-public/AB6AXuCk4PE_L96ZBJHUhUppGnArkjK2PsxpH-aSfmF4uK0XW0MS_tRftS7WC7b6ol2iqwKFzYEzjDgIQ_QEFH7PGkokE3nhutiGt76VgU1lWmLF8jWVnwPWLwOgxB6ZmCgmCkuf5Mgb3O_vf98xXkZYNqtF3zU03ENGKTpzDz5OZGoBMzjgrG0EM8jMRdoCJpdPpJlbhXyuBAOv9UebMf2jApHed68KmZcx1qUYMUJ_ZAnvi5zQaXzoAzwc'),
-    ('p6', '11111111-1111-1111-1111-111111111111', 'SNK-08', 'French Fries', 'Truffle Mayo Dip', 18000, 40, 'makanan', 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX0fS4FmiuisAofnz64dX9L5rB7KMtFMC1EueqiyEsxh024_006C_ybMXEmRzHN4gpyBrWpJAIaA8u1iCdL2imGLOkW2FzU7jWBXMGqk70xQcIRDOzgHJRP3TFYuOsol8PBlP7LvOJucCKZXIf_-57EpIblsPKt_yfne9YeThsmSO5tsJDrVDnELuBq5pfP-yubBsyegl8fALCdOBcMoblEHO-3yxWhHgwVlwuCtwaahJpL0lPur3D'),
-    ('p7', '11111111-1111-1111-1111-111111111111', 'TEA-02', 'Earl Grey Tea', 'Citrus Bergamot', 16000, 60, 'kopi', 'https://lh3.googleusercontent.com/aida-public/AB6AXuC9qu7JZPrYS1KVO4Ufy5y1SVLuu92kil2PzFBDZ1QqICV_eatHKxFpb1P5S4oo9kcNetxc0RkO4nZNYOz4EdqvfRDyCjobgDuqBGlig0qOPRpAcl4_4m04xC27xYLlgesTUvchjP5RxPLbsFioHstpj9IgDphB4lnqX-stxLmRbj3PdGHz2NS3-Ed049-LKRfS2mOUpR0bGUjUQtpS1tB4StI7H8Tjj5-6KNvL93_nAEQLj1fvDIts'),
-    ('p8', '11111111-1111-1111-1111-111111111111', 'CAK-05', 'Red Velvet Cake', 'Cream Cheese', 32000, 12, 'dessert', 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5dLHMtNliDgzR7k17PrD_Be9AHBYOgmmaoB9mNrI-p17CgulXrQKpU6wNLmY2KvzSThP01FWUOt-ksvoBdhmYr1Sau2a3Z0cAKxgQsQSah01rNC_xvqqHeArfcBvOOnsmWjnNcH28PWGD-0yBxVTkjlimZyXf4WWolTNRsqqEDegOCR4o_ZHLCnToOzXCf3nWF-Hk_tTmRlkTqV1cfdbMBzh7WCZli8Sp42IfeckUVjjSWCiacAwC');
+ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to suppliers" ON public.suppliers FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.suppliers TO anon, authenticated;
 
--- *Catatan: Untuk tabel profiles (Pemilik), Anda harus mendaftar dulu via Supabase Auth (Sign Up),
--- lalu menyalin User UUID-nya ke tabel profiles dan menautkannya dengan org_id toko Anda.
+-- ==============================================================================
+-- 9. SALES
+-- ==============================================================================
+CREATE TABLE public.sales (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    invoice_number TEXT NOT NULL,
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    cashier_id TEXT,
+    sale_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    subtotal NUMERIC NOT NULL DEFAULT 0,
+    discount_amount NUMERIC NOT NULL DEFAULT 0,
+    discount_percent NUMERIC NOT NULL DEFAULT 0,
+    tax_amount NUMERIC NOT NULL DEFAULT 0,
+    tax_percent NUMERIC NOT NULL DEFAULT 0,
+    total NUMERIC NOT NULL DEFAULT 0,
+    paid_amount NUMERIC NOT NULL DEFAULT 0,
+    change_amount NUMERIC NOT NULL DEFAULT 0,
+    payment_method TEXT DEFAULT 'cash',
+    payment_status TEXT NOT NULL DEFAULT 'paid',
+    notes TEXT,
+    is_voided BOOLEAN NOT NULL DEFAULT false,
+    voided_at TIMESTAMPTZ,
+    voided_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to sales" ON public.sales FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.sales TO anon, authenticated;
+
+-- ==============================================================================
+-- 10. SALE ITEMS
+-- ==============================================================================
+CREATE TABLE public.sale_items (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    sale_id UUID REFERENCES public.sales(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
+    variant_id UUID REFERENCES public.product_variants(id) ON DELETE SET NULL,
+    product_name TEXT NOT NULL,
+    product_sku TEXT,
+    qty NUMERIC NOT NULL DEFAULT 1,
+    unit_price NUMERIC NOT NULL DEFAULT 0,
+    buy_price NUMERIC NOT NULL DEFAULT 0,
+    discount_amount NUMERIC NOT NULL DEFAULT 0,
+    discount_percent NUMERIC NOT NULL DEFAULT 0,
+    subtotal NUMERIC NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.sale_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to sale_items" ON public.sale_items FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.sale_items TO anon, authenticated;
+
+-- ==============================================================================
+-- 11. PURCHASES
+-- ==============================================================================
+CREATE TABLE public.purchases (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    purchase_number TEXT NOT NULL,
+    supplier_id UUID REFERENCES public.suppliers(id) ON DELETE SET NULL,
+    purchase_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    subtotal NUMERIC NOT NULL DEFAULT 0,
+    discount_amount NUMERIC NOT NULL DEFAULT 0,
+    tax_amount NUMERIC NOT NULL DEFAULT 0,
+    total NUMERIC NOT NULL DEFAULT 0,
+    paid_amount NUMERIC NOT NULL DEFAULT 0,
+    payment_method TEXT DEFAULT 'transfer',
+    payment_status TEXT NOT NULL DEFAULT 'paid',
+    notes TEXT,
+    created_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.purchases ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to purchases" ON public.purchases FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.purchases TO anon, authenticated;
+
+-- ==============================================================================
+-- 12. PURCHASE ITEMS
+-- ==============================================================================
+CREATE TABLE public.purchase_items (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    purchase_id UUID REFERENCES public.purchases(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
+    variant_id UUID REFERENCES public.product_variants(id) ON DELETE SET NULL,
+    product_name TEXT NOT NULL,
+    qty NUMERIC NOT NULL DEFAULT 1,
+    unit_price NUMERIC NOT NULL DEFAULT 0,
+    subtotal NUMERIC NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.purchase_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to purchase_items" ON public.purchase_items FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.purchase_items TO anon, authenticated;
+
+-- ==============================================================================
+-- 13. STOCK MOVEMENTS
+-- ==============================================================================
+CREATE TABLE public.stock_movements (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
+    variant_id UUID REFERENCES public.product_variants(id) ON DELETE SET NULL,
+    type TEXT NOT NULL, -- sale, purchase, adjustment, opname, void_sale, return
+    reference_type TEXT,
+    reference_id UUID,
+    qty_change INTEGER NOT NULL DEFAULT 0,
+    qty_before INTEGER NOT NULL DEFAULT 0,
+    qty_after INTEGER NOT NULL DEFAULT 0,
+    notes TEXT,
+    created_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.stock_movements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to stock_movements" ON public.stock_movements FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.stock_movements TO anon, authenticated;
+
+-- ==============================================================================
+-- 14. EXPENSE CATEGORIES
+-- ==============================================================================
+CREATE TABLE public.expense_categories (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    icon TEXT,
+    color TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.expense_categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to expense_categories" ON public.expense_categories FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.expense_categories TO anon, authenticated;
+
+-- ==============================================================================
+-- 15. EXPENSES
+-- ==============================================================================
+CREATE TABLE public.expenses (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    category_id UUID REFERENCES public.expense_categories(id) ON DELETE SET NULL,
+    amount NUMERIC NOT NULL DEFAULT 0,
+    expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    description TEXT,
+    payment_method TEXT,
+    receipt_url TEXT,
+    created_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to expenses" ON public.expenses FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.expenses TO anon, authenticated;
+
+-- ==============================================================================
+-- 16. RECEIVABLES (Piutang)
+-- ==============================================================================
+CREATE TABLE public.receivables (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    sale_id UUID REFERENCES public.sales(id) ON DELETE SET NULL,
+    invoice_number TEXT,
+    total_amount NUMERIC NOT NULL DEFAULT 0,
+    paid_amount NUMERIC NOT NULL DEFAULT 0,
+    remaining_amount NUMERIC NOT NULL DEFAULT 0,
+    due_date DATE,
+    status TEXT NOT NULL DEFAULT 'unpaid',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.receivables ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to receivables" ON public.receivables FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.receivables TO anon, authenticated;
+
+-- ==============================================================================
+-- 17. PAYABLES (Hutang)
+-- ==============================================================================
+CREATE TABLE public.payables (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    supplier_id UUID REFERENCES public.suppliers(id) ON DELETE SET NULL,
+    purchase_id UUID REFERENCES public.purchases(id) ON DELETE SET NULL,
+    purchase_number TEXT,
+    total_amount NUMERIC NOT NULL DEFAULT 0,
+    paid_amount NUMERIC NOT NULL DEFAULT 0,
+    remaining_amount NUMERIC NOT NULL DEFAULT 0,
+    due_date DATE,
+    status TEXT NOT NULL DEFAULT 'unpaid',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.payables ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to payables" ON public.payables FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.payables TO anon, authenticated;
+
+-- ==============================================================================
+-- 18. NOTIFICATIONS
+-- ==============================================================================
+CREATE TABLE public.notifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+    user_id TEXT,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT,
+    data JSONB DEFAULT '{}'::jsonb,
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to notifications" ON public.notifications FOR ALL USING (true) WITH CHECK (true);
+GRANT ALL ON public.notifications TO anon, authenticated;
+
+-- ==============================================================================
+-- REALTIME: Enable realtime for all tables
+-- ==============================================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.sales;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.sale_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.purchases;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.purchase_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.stock_movements;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.customers;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.suppliers;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.expenses;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.receivables;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.payables;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.units;
+
+-- ==============================================================================
+-- DONE — Schema kosong dan siap untuk dipakai!
+-- ==============================================================================

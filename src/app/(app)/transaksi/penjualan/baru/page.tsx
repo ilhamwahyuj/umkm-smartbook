@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 import { cn, formatRupiah } from "@/lib/utils";
 import { useCartStore } from "@/stores/useCartStore";
-import { mockProducts, mockCustomers } from "@/lib/mock-data";
+import { useGetProducts } from "@/hooks/api/useProducts";
+import { useGetCustomers } from "@/hooks/api/useCustomers";
+import { useCreateSale } from "@/hooks/api/useSales";
 import type { Product } from "@/types/database";
 
 type PaymentMethodKey = "cash" | "transfer" | "qris" | "e_wallet" | "credit";
@@ -52,17 +54,13 @@ export default function PenjualanBaruPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const filteredProducts = mockProducts.filter((p) =>
-    p.is_active &&
-    (p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-     (p.sku?.toLowerCase() ?? "").includes(productSearch.toLowerCase()) ||
-     (p.barcode ?? "").includes(productSearch))
-  );
+  const { data: allProducts = [] } = useGetProducts({ search: productSearch });
+  const { data: allCustomers = [] } = useGetCustomers(customerSearch);
+  const createSale = useCreateSale();
 
-  const filteredCustomers = mockCustomers.filter((c) =>
-    c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    (c.phone ?? "").includes(customerSearch)
-  );
+  const filteredProducts = allProducts.filter((p) => p.is_active);
+
+  const filteredCustomers = allCustomers;
 
   const change = payment_method === "cash" && paidAmount
     ? Math.max(0, Number(paidAmount.replace(/\D/g, "")) - grandTotal())
@@ -72,12 +70,39 @@ export default function PenjualanBaruPage() {
     if (items.length === 0) return;
     setLoading(true);
 
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200));
-
-    const invoiceNum = `INV-${new Date().toISOString().replace(/\D/g, "").slice(0, 8)}-${Math.floor(Math.random() * 9000) + 1000}`;
-    setSuccess(invoiceNum);
-    setLoading(false);
+    try {
+      const result = await createSale.mutateAsync({
+        items: items.map((item) => ({
+          product_id: item.product.id,
+          variant_id: item.variant?.id,
+          product_name: item.product.name,
+          product_sku: item.product.sku || undefined,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          buy_price: item.product.buy_price,
+          discount_amount: item.discount_amount,
+          discount_percent: item.discount_percent,
+          subtotal: item.subtotal,
+        })),
+        customer_id: customer?.id,
+        subtotal: subtotal(),
+        discount_amount: discountTotal(),
+        discount_percent: 0,
+        tax_amount: taxTotal(),
+        tax_percent: 0,
+        total: grandTotal(),
+        paid_amount: payment_method === "cash" && paidAmount ? Number(paidAmount.replace(/\D/g, "")) : grandTotal(),
+        change_amount: change,
+        payment_method,
+        payment_status: payment_method === "credit" ? "unpaid" : "paid",
+        notes: undefined,
+      });
+      setSuccess(result.invoice_number);
+    } catch (err: any) {
+      alert("Gagal menyimpan transaksi: " + (err.message || "Unknown error"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleNewTransaction = () => {
